@@ -1,0 +1,6 @@
+*.tmp
+data/
+*__*
+cache/
+pass.txt
+venv
