@@ -64,7 +64,7 @@ def main_road():
         # get total bounds
         xmin,ymin,xmax,ymax = float(bbox[1]), float(bbox[2]), float(bbox[3]), float(bbox[4])
         logger.error('Downloading {} region edges from OSMNX'.format(region))
-        # get network
+        # get network 
         G = ox.graph_from_bbox(ymax, ymin, xmax, xmin, network_type='drive', simplify=False, retain_all=True, truncate_by_edge=True)
         # convert to gdf
         logger.error('Converting edges graph to GeoPandas')
@@ -108,10 +108,7 @@ def main_road():
                 logger.error('Creating/Appending exposed roads to SQL table | {}-{}-{}'.format(region, rise, inundation))
                 for q in queries:
                     cur.execute(q)
-                    #cursor.execute(q)
                 conn.commit()
-                #db['con'].commit()
-                #cursor.close()
                 logger.error('Table created')
 
     db['con'].close()
