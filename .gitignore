@@ -4,3 +4,7 @@ data/
 cache/
 pass.txt
 venv
+.vscode
+PSn*
+Rf*
+WZk*
