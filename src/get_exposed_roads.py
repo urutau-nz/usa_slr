@@ -118,30 +118,3 @@ def main_road():
 
 
 main_road()
-
-
-
-
-
-
-
-
-
-# # pull in slr
-# sql = "SELECT * FROM slr WHERE rise = '{}' AND inundation = '{}' AND region = '{}'".format(rise, inundation, region)
-# extent = gpd.GeoDataFrame.from_postgis(sql, db['con'], geom_col='geometry')
-# # clip with slr
-# logger.error('Clipping Roads with SLR')
-# exposed_roads = gpd.overlay(road_gdf, extent, how='intersection')
-
-# # calc length of road
-# exposed_roads = exposed_roads.to_crs(3395)
-# exposed_roads['length'] = list(exposed_roads.length.round(1))
-# # drop geom
-# exposed_roads = pd.DataFrame(exposed_roads.drop(columns=['geometry', 'bridge', 'area', 'layer']))
-# # rename columns
-# exposed_roads = exposed_roads.rename(columns={"u": "to_osmid", "v": "from_osmid"})
-# # save to SQL
-# logger.error('Appending exposed roads to SQL for {}-{}-{}'.format(region, rise, inundation))
-# exposed_roads.to_sql('exposed_roads', engine, if_exists='append')
-# db['con'].commit()
