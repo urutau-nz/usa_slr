@@ -46,7 +46,9 @@ def main_road():
     logger.error('Obtaining region list from SQL')
     cursor = db['con'].cursor()
     cursor.execute("SELECT DISTINCT region FROM slr_raw")
+    completed_regions = list(pd.read_sql('SELECT DISTINCT(region) FROM exposed_roads', con)['region'].values)
     regions = [list(i)[0] for i in cursor.fetchall()]
+    regions = [l for l in regions if not any(x in l for x in completed_regions)]
     cursor.close()
     # make list of slr rise
     rises = np.arange(0,11)
@@ -72,7 +74,8 @@ def main_road():
         # reset index to get from & to columns (v & u)
         road_gdf.reset_index(inplace=True)
         # drop rows with bridges
-        road_gdf = road_gdf[(road_gdf['bridge'].isna()) | (road_gdf['bridge']=='no')]
+        if 'bridge' in road_gdf:
+            road_gdf = road_gdf[(road_gdf['bridge'].isna()) | (road_gdf['bridge']=='no')]
         # drop unused columns
         road_gdf.drop(columns=['osmid', 'lanes', 'name', 'highway', 'oneway', 'length', 'ref', 'maxspeed', 'junction', 'access', 'tunnel', 'width', 'key', 'bridge'], errors='ignore', inplace=True)
         # rename columns
