@@ -11,6 +11,9 @@ Handy info on geo-identifiers https://www.census.gov/programs-surveys/geography/
 
 
 ### Destinations
+Placed into SQL if they are within 5km of a county  # buffer distance as per Williams (2020)
+Superamrkets located same method as 500cities
+
 #### Schools
 Private and public primary schools
 https://hifld-geoplatform.opendata.arcgis.com/datasets/private-schools
@@ -28,4 +31,4 @@ https://hifld-geoplatform.opendata.arcgis.com/datasets/hospitals
 https://hifld-geoplatform.opendata.arcgis.com/datasets/pharmacies
 
 #### Supermarkets
-
+OSM

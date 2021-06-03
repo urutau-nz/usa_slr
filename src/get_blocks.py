@@ -42,8 +42,10 @@ df_blocks = df_blocks[['GEOID', 'geometry']]
 df_blocks = df_blocks.to_crs(crs)
 logger.info('Blocks imported')
 
+# code.interact(local=locals())
+
 # determine the centroid of the blocks
-df_blocks['centroid'] = df_blocks.centroid
+df_blocks['centroid'] = df_blocks.representative_point()
 df_blocks.set_geometry('centroid', inplace=True)
 logger.info('Centroids found')
 
