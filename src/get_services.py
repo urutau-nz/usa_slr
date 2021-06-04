@@ -250,10 +250,13 @@ def make_gdf():
     '''
     # init results database
     df_dest = gpd.GeoDataFrame()
-    df_dest['id_dest'] = dest_ids
+    # get the max id_dest
+    sql = "SELECT MAX(id_dest) FROM destinations;"
+    id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
+    # export
+    df_dest['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(geoids))
     df_dest['dest_type'] = dest_types
     df_dest['geoid'] = geoids
-    df_dest['name'] = names
     # change clinics to doctors
     df_dest["dest_type"].replace({"clinic": "doctor", "doctors": "doctor"}, inplace=True)
     #turn all point data (lats, lons) into geoms
