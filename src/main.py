@@ -1,5 +1,5 @@
-# import init_osrm
-# import query
+import init_osrm
+import query
 import yaml
 import subprocess
 # functions - data management

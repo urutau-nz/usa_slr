@@ -5,12 +5,12 @@ set_up:
 
 # Which services do you want to evalaute? (must match 'dest_type' name from destination matix, unless script_mode='setup') TYPE: lst of str's
 services:
-  # - supermarket
-  # - primary_school
-  # - pharmacy
+  - supermarket
+  - food_store
+  - primary_school
+  - pharmacy
   - fire_station
   - emergency_medical_service
-  # - park
 
 # What mode of transport are you evaluating? ['driving', 'walking', 'cycling'] TYPE: str
 transport_mode: driving
@@ -52,6 +52,6 @@ OSM:
 
 OSRM:
     host: http://localhost
-    port: '6030'
+    port: '6050'
     # Do you want the port closed after use? [True, False] TYPE: bool
     shutdown: True
