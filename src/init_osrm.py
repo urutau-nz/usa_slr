@@ -31,10 +31,10 @@ def main(config, logger):
         subprocess.run(com.split())
 
     # download the data
-    download_data = 'wget -N https://download.geofabrik.de/{}/{}-latest.osm.pbf -P {}'.format(osm_region, osm_subregion, directory)
-    p = subprocess.run(download_data.split(), stderr=subprocess.PIPE, bufsize=0)
-    compile_osrm = '304 Not Modified' not in str(p.stderr)
-    # compile_osrm = False  # True  #
+    # download_data = 'wget -N https://download.geofabrik.de/{}/{}-latest.osm.pbf -P {}'.format(osm_region, osm_subregion, directory)
+    # p = subprocess.run(download_data.split(), stderr=subprocess.PIPE, bufsize=0)
+    # compile_osrm = '304 Not Modified' not in str(p.stderr)
+    compile_osrm = False  # True  #
 
     # if the data does not redownload, it does not need to re-compile.
     if compile_osrm:
