@@ -1,5 +1,6 @@
 import init_osrm
 import query
+import query_altered_network
 import yaml
 import subprocess
 # functions - data management
@@ -37,8 +38,7 @@ def main(config_filename=None):
         config = yaml.load(file)
 
     # initialize the OSRM server
-    init_osrm.main(config, logger)
-
+    #init_osrm.main(config, logger)
     # initialize and connect to the server
     # db = init_db(config)
 
@@ -48,7 +48,11 @@ def main(config_filename=None):
     # db['con'].close()
 
     # query
-    query.main(config)
+    #query.main(config)
+    query_altered_network.main(config)
+
+    # calculate nearest
+
 
     # shutdown the OSRM server
     shutdown_db(config)

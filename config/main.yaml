@@ -6,7 +6,7 @@ set_up:
 # Which services do you want to evalaute? (must match 'dest_type' name from destination matix, unless script_mode='setup') TYPE: lst of str's
 services:
   - supermarket
-  - food_store
+  # - food_store
   - primary_school
   - pharmacy
   - fire_station
@@ -30,7 +30,7 @@ par_frac: 0.8
 SQL:
   create_db: True
   database_name: usa_slr # this is the name of the database
-  table_name: distances # this is the name for the table of distances
+  table_name: distances_slr_low # this is the name for the table of distances
   port: '5002'
   host: 132.181.102.2
   replace: True
@@ -48,7 +48,7 @@ OSM:
     osm_subregion: us
     osm_region: north-america
     # where do you want your OSM data saved
-    data_directory: /homedirs/projects/500_cities_access/data/raw/osm
+    data_directory: /homedirs/projects/access_usa_slr/data/raw/osm
 
 OSRM:
     host: http://localhost

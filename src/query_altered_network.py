@@ -36,11 +36,14 @@ from tqdm import tqdm
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+# functions - scripts
+import init_osrm
+import make_roads_csv
 # functions - logging
 import logging
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.ERROR,
+    level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
@@ -53,21 +56,39 @@ def main(config):
     '''
     # gather data and context
     db = connect_db(config)
-    # code.interact(local=locals())
     # get the county geoids from origins
     geoid_counties = list(pd.read_sql(
         'SELECT DISTINCT(geoid_county) FROM origins', db['con'])['geoid_county'].values)
     # loop through the counties
     i = 0
-    for geoid_county in tqdm(geoid_counties):
-        # query the distances
-        origxdest = query_points(db, config, geoid_county)
-        # add df to sql
-        write_to_postgres(origxdest, db, i)
-        # determine nearest
-
-        # calculate EDE
-        i+=1
+    for inundation in tqdm(['slr', 'low']):
+        for rise in tqdm(np.arange(8,11)):
+            logger.error('INITIALISING DOCKER FOR RISE: {} & INUNDATION: {}'.format(rise, inundation))
+            # reset & alter docker
+            if rise == 0:
+                init_osrm.main(config, logger, False, False)
+            else:
+                # make csv of closed road ids
+                df_osmids = pd.read_sql("SELECT from_osmid, to_osmid FROM exposed_roads WHERE rise={} AND inundation='{}'".format(rise, inundation), db['con'])
+                make_roads_csv.main(df_osmids, config)
+                init_osrm.main(config, logger, True, False)
+            for geoid_county in tqdm(geoid_counties):
+                if rise == 0:
+                    closed_ids = []
+                else:
+                    # get list of closed services ids
+                    closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={} AND inundation='{}'".format(geoid_county, rise, inundation), db['con'])
+                    closed_ids = list(closed_ids['id_dest'])
+                # query the distances
+                logger.error('QUERYING POINTS FOR {}, {}, {}'.format(geoid_county, rise, inundation))
+                origxdest = query_points(db, config, geoid_county, closed_ids)
+                # format results
+                origxdest['rise'] = rise
+                origxdest['inundation'] = inundation
+                # add df to sql
+                write_to_postgres(origxdest, db, i)
+                logger.error('Saved to SQL: {}, {}, {}'.format(geoid_county, rise, inundation))
+                i+=1
 
     # close the connection
     db['con'].close()
@@ -94,7 +115,7 @@ def connect_db(config):
 
 
 ############## Query Points ##############
-def query_points(db, config, geoid_county):
+def query_points(db, config, geoid_county, closed_ids):
     '''
     query OSRM for distances between origins and destinations
     '''
@@ -127,6 +148,9 @@ def query_points(db, config, geoid_county):
     # sql = "SELECT id_dest, dest_type, st_x(geometry) as lon, st_y(geometry) as lat FROM destinations WHERE geoid_county={} AND dest_type IN ('{}') ;".format(
     #     geoid_county, "','".join(config['services']))
     dest_df = pd.read_sql(sql, db['con'])
+
+    # remove closed ids
+    dest_df = dest_df.loc[~dest_df['id_dest'].isin(closed_ids)]
 
     dest_df['id_dest'] = dest_df['id_dest'].astype('int32')
     dest_df['dest_type'] = dest_df['dest_type'].astype('category')
@@ -498,7 +522,7 @@ def write_to_postgres(df, db, i, indices=True):
         if i == 0:
             # truncates the table
             df.head(0).to_sql(
-                table_name, db['engine'], if_exists='replace', index=False)
+                table_name, db['engine'], if_exists='append', index=False)
     conn = db['engine'].raw_connection()
     cur = conn.cursor()
     output = io.StringIO()
