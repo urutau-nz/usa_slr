@@ -58,37 +58,36 @@ def main(config):
     db = connect_db(config)
     # get the county geoids from origins
     geoid_counties = list(pd.read_sql(
-        'SELECT DISTINCT(geoid_county) FROM origins', db['con'])['geoid_county'].values)
+        'SELECT DISTINCT(geoid_county) FROM origins20', db['con'])['geoid_county'].values)
     # loop through the counties
     i = 0
-    for inundation in tqdm(['slr', 'low']):
-        for rise in tqdm(np.arange(8,11)):
-            logger.error('INITIALISING DOCKER FOR RISE: {} & INUNDATION: {}'.format(rise, inundation))
-            # reset & alter docker
+    for rise in tqdm(np.arange(0,11)):
+        logger.error('INITIALISING DOCKER FOR RISE: {}'.format(rise))
+        # reset & alter docker
+        if rise == 0:
+            init_osrm.main(config, logger, False, False)
+        else:
+            # make csv of closed road ids
+            df_osmids = pd.read_sql("SELECT from_osmid, to_osmid FROM exposed_roads WHERE rise={}".format(rise), db['con'])
+            make_roads_csv.main(df_osmids, config)
+            init_osrm.main(config, logger, True, False)
+        for geoid_county in tqdm(geoid_counties):
             if rise == 0:
-                init_osrm.main(config, logger, False, False)
+                closed_ids = []
             else:
-                # make csv of closed road ids
-                df_osmids = pd.read_sql("SELECT from_osmid, to_osmid FROM exposed_roads WHERE rise={} AND inundation='{}'".format(rise, inundation), db['con'])
-                make_roads_csv.main(df_osmids, config)
-                init_osrm.main(config, logger, True, False)
-            for geoid_county in tqdm(geoid_counties):
-                if rise == 0:
-                    closed_ids = []
-                else:
-                    # get list of closed services ids
-                    closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={} AND inundation='{}'".format(geoid_county, rise, inundation), db['con'])
-                    closed_ids = list(closed_ids['id_dest'])
-                # query the distances
-                logger.error('QUERYING POINTS FOR {}, {}, {}'.format(geoid_county, rise, inundation))
-                origxdest = query_points(db, config, geoid_county, closed_ids)
-                # format results
-                origxdest['rise'] = rise
-                origxdest['inundation'] = inundation
-                # add df to sql
-                write_to_postgres(origxdest, db, i)
-                logger.error('Saved to SQL: {}, {}, {}'.format(geoid_county, rise, inundation))
-                i+=1
+                # get list of closed services ids
+                closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={}".format(geoid_county, rise), db['con'])
+                closed_ids = list(closed_ids['id_dest'])
+            # query the distances
+            logger.error('QUERYING POINTS FOR {}, {}'.format(geoid_county, rise))
+            origxdest = query_points(db, config, geoid_county, closed_ids)
+            # format results
+            origxdest['rise'] = rise
+            origxdest['inundation'] = 'slr_low'
+            # add df to sql
+            write_to_postgres(origxdest, db, i)
+            logger.error('Saved to SQL: {}, {}'.format(geoid_county, rise))
+            i+=1
 
     # close the connection
     db['con'].close()
@@ -125,7 +124,7 @@ def query_points(db, config, geoid_county, closed_ids):
     cursor = db['con'].cursor()
 
     # get list of all origin ids that have a population > 0
-    sql = '''SELECT geoid, st_x(centroid) as x, st_y(centroid) as y FROM origins WHERE geoid_county='{}' AND "H7X001">0;'''.format(
+    sql = '''SELECT geoid, st_x(centroid) as x, st_y(centroid) as y FROM origins20 WHERE geoid_county='{}' AND "U7B001">0;'''.format(
         geoid_county)
     orig_df = pd.read_sql(sql, db['con'])
 
@@ -135,7 +134,7 @@ def query_points(db, config, geoid_county, closed_ids):
     orig_df['geoid'] = orig_df['geoid'].astype('category')
     orig_df = orig_df.set_index('geoid')
     orig_df.sort_index(inplace=True)
-    logger.error('Data: origins imported')
+    logger.error('Data: origins20 imported')
 
     # get list of destination ids
     sql = '''SELECT d.id_dest, d.dest_type, st_x(d.geometry) as lon, st_y(d.geometry) as lat
