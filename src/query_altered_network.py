@@ -61,7 +61,7 @@ def main(config):
         'SELECT DISTINCT(geoid_county) FROM origins20', db['con'])['geoid_county'].values)
     # loop through the counties
     i = 0
-    for rise in tqdm(np.arange(0,11)):
+    for rise in tqdm([10,0,6,3,9,8,7,5,4,2,1]):
         logger.error('INITIALISING DOCKER FOR RISE: {}'.format(rise))
         # reset & alter docker
         if rise == 0:
