@@ -40,56 +40,47 @@ cur = conn.cursor()
 
 dist = pd.read_sql("Select geoid, rise, dest_type, distance from nearest_block where inundation='slr_low'", db['con'])
 dist.dropna(inplace=True)
-dist.set_index(['geoid', 'rise', 'dest_type'], inplace=True)
-indices = set(dist.index.tolist())
-logger.info('Imported: distances')
-origins = pd.read_sql('SELECT geoid, geoid_county FROM origins WHERE "H7X001">0', db['con'])
-logger.info('Imported: origins')
+dist.set_index('geoid', inplace=True)
 blocks = pd.read_sql('SELECT geoid, geoid_county, "H7X001","H7X002","H7X003","H7Y003","IFE001" FROM blocks WHERE "H7X001">0', db['con'])
 blocks.drop_duplicates(inplace=True)
 blocks.set_index('geoid',inplace=True)
-logger.info('Imported: blocks')
+dist = dist.join(blocks,how='left')
 
-counties = np.unique(origins.geoid_county)
-demographics = ['H7X001', 'H7X002','H7X003','H7Y003','IFE001']
-dest_types = np.append(dist.index.unique(level='dest_type'),'isolated')
-slr = np.arange(0, 11)
+import code
+code.interact(local=locals())
 
-# initialise results df
-new_indices = itertools.product(counties, slr, dest_types, demographics)
-results = pd.DataFrame(new_indices, columns = ['county','slr','dest_type','demographic'])
-results['value'] = 0
-results.set_index(['county', 'slr', 'dest_type', 'demographic'], inplace=True)
+results = dist.groupby(['geoid_county', 'rise', 'dest_type']).sum()
+results.reset_index(inplace=True)
+results.set_index('geoid_county', inplace=True)
 
-
-for county in tqdm(counties):
-    # get the blocks in the county
-    geoids = origins['geoid'].loc[origins['geoid_county']==county].values
-    # loop through the rises
-    for rise in slr:
-        for geoid in geoids:
-            iso = True
-            for dest_type in dest_types[:-1]:
-                # does geoid, slr, dest_type appear in the set of keys.
-                access = (geoid, rise, dest_type) in indices
-                if access:
-                    iso = False  # as it's not isolated from everything
-                    # add the demographics
-                    for dem in demographics:
-                        results.loc[(county, rise, dest_type, dem),
-                                    'value'] += blocks.loc[geoid,dem]
-            if iso:
-                dest_type = 'isolated'
-                # if isolated from all services
-                for dem in demographics:
-                    results.loc[(county, rise, dest_type, dem),
-                                'value'] += blocks.loc[geoid, dem]
+# then to calculate the isolation
+access = dist.copy()
+access.reset_index(inplace=True)
+access = access[['geoid','geoid_county','rise',"H7X001","H7X002","H7X003","H7Y003","IFE001"]]
+access.drop_duplicates(inplace=True)
+notisolated = access.groupby(['geoid_county', 'rise']).sum()
+notisolated.reset_index(inplace=True)
+notisolated.set_index('geoid_county', inplace=True)
 
 
 # now merge this with the total number of each to determine the number of people isolated from
 county_totals = blocks.groupby(['geoid_county']).sum()
-county_totals = county_totals.stack()
-results.reset_index(inplace=True)
-results.set_index(['county','demographic'], inplace=True)
-results = results.join(county_totals, how='left')
+results = results.join(county_totals, how='left', rsuffix='total')
+notisolated = notisolated.join(county_totals, how='left', rsuffix='total')
+
+notisolated['H7X001_isolated'] = notisolated['H7X001total'] - notisolated['H7X001']
+notisolated['H7X002_isolated'] = notisolated['H7X002total'] - notisolated['H7X002']
+notisolated['H7X003_isolated'] = notisolated['H7X003total'] - notisolated['H7X003']
+notisolated['H7Y003_isolated'] = notisolated['H7Y003total'] - notisolated['H7Y003']
+notisolated['IFE001_isolated'] = notisolated['IFE001total'] - notisolated['IFE001']
+total_isolated = notisolated.groupby('rise').sum()
+total_isolated.to_csv('./data/processed/isolation.csv')
+
+results['H7X001_isolated'] = results['H7X001total'] - results['H7X001']
+results['H7X002_isolated'] = results['H7X002total'] - results['H7X002']
+results['H7X003_isolated'] = results['H7X003total'] - results['H7X003']
+results['H7Y003_isolated'] = results['H7Y003total'] - results['H7Y003']
+results['IFE001_isolated'] = results['IFE001total'] - results['IFE001']
+total_results = results.groupby(['dest_type', 'rise']).sum()
+total_results.to_csv('./data/processed/isolation_by_destination.csv')
 
