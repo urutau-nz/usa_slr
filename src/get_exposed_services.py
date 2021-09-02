@@ -3,6 +3,7 @@ Finds services where it intersects with the SLR scenarios
 Returns a df to SQL of services that will be closed for each scenario
 '''
 
+from slack import post_message_to_slack
 from tqdm import tqdm
 import main
 import geopandas as gpd
@@ -78,7 +79,7 @@ def main():
                     WITH slr AS (SELECT geometry as geom FROM slr_raw WHERE rise='{rise}' AND inundation='{inundation}')
                     SELECT geoid, id_dest, dest_type, {rise}, '{inundation}'
                     FROM destinations, slr
-                    WHERE ST_Intersects(destinations.geometry, slr.geom);
+                    WHERE ST_Intersects(destinations.geometry, slr.geom) AND destinations.dest_type='supermarket';
                     """.format(rise=rise, inundation=inundation)
             ]
             logger.error('Creating/Appending exposed services to SQL table | {}-{}'.format(rise, inundation))
@@ -91,3 +92,4 @@ def main():
     logger.error('Database connection closed')
 
 main()
+post_message_to_slack("Service exposed to SLR have been determined and written to SQL")

@@ -63,114 +63,170 @@ def import_counties(db, crs):
 df_counties = import_counties(db, crs)
 df_bounds = df_counties
 
+# code.interact(local=locals())
 
-###
-# Schools
-###
-# import
-schools_private = gpd.read_file('./data/raw/destinations/Private_Schools.shp')
-schools_public = gpd.read_file('./data/raw/destinations/PublicSchools.shp')
-schools_private = schools_private.to_crs(crs)
-schools_public = schools_public.to_crs(crs)
+destinations = ['supermarket']
 
-# filter
-schools_private['START_GRAD'] = schools_private['START_GRAD'].astype(int)
-schools_private['END_GRADE'] = schools_private['END_GRADE'].astype(int)
-schools_public.loc[schools_public['ST_GRADE'].str.contains('|'.join(['K','M','N','U', 'A'])),'ST_GRADE'] = '0'
-schools_public['ST_GRADE'] = schools_public['ST_GRADE'].astype(int)
-schools_public.loc[schools_public['END_GRADE'].str.contains('|'.join(['K','M','N','U', 'A'])),'END_GRADE'] = '0'
-schools_public['END_GRADE'] = schools_public['END_GRADE'].astype(int)
-# select schools that teach children aged 6-11
-schools_private = schools_private[(schools_private['START_GRAD']<6) & (schools_private['END_GRADE']>1)]
-schools_public = schools_public[(schools_public['ST_GRADE']<6) & (schools_public['END_GRADE']>1)]
+if 'school' in destinations:
+    ###
+    # Schools
+    ###
+    # import
+    schools_private = gpd.read_file('./data/raw/destinations/Private_Schools.shp')
+    schools_public = gpd.read_file('./data/raw/destinations/PublicSchools.shp')
+    schools_private = schools_private.to_crs(crs)
+    schools_public = schools_public.to_crs(crs)
 
-# merge
-schools = schools_private['geometry'].append(schools_public['geometry'])
-schools = gpd.GeoDataFrame(geometry=schools)
-# identify geoid
-schools = gpd.sjoin(schools, df_bounds, how='inner', op='within')
+    # filter
+    schools_private['START_GRAD'] = schools_private['START_GRAD'].astype(int)
+    schools_private['END_GRADE'] = schools_private['END_GRADE'].astype(int)
+    schools_public.loc[schools_public['ST_GRADE'].str.contains('|'.join(['K','M','N','U', 'A'])),'ST_GRADE'] = '0'
+    schools_public['ST_GRADE'] = schools_public['ST_GRADE'].astype(int)
+    schools_public.loc[schools_public['END_GRADE'].str.contains('|'.join(['K','M','N','U', 'A'])),'END_GRADE'] = '0'
+    schools_public['END_GRADE'] = schools_public['END_GRADE'].astype(int)
+    # select schools that teach children aged 6-11
+    schools_private = schools_private[(schools_private['START_GRAD']<6) & (schools_private['END_GRADE']>1)]
+    schools_public = schools_public[(schools_public['ST_GRADE']<6) & (schools_public['END_GRADE']>1)]
 
-# get the max id_dest
-# sql = "SELECT MAX(id_dest) FROM destinations;"
-# id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
-id_dest_max = -1
+    # merge
+    schools = schools_private['geometry'].append(schools_public['geometry'])
+    schools = gpd.GeoDataFrame(geometry=schools)
+    # identify geoid
+    schools = gpd.sjoin(schools, df_bounds, how='inner', op='within')
 
-# export
-schools['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(schools))
-schools['dest_type'] = 'primary_school'
-schools = schools[['id_dest','geoid','dest_type','geometry']]
-schools.to_postgis('destinations', engine, if_exists='append', dtype={'geometry': Geometry('POINT', srid=crs)})
-logger.info('Schools added SQL')
+    # get the max id_dest
+    # sql = "SELECT MAX(id_dest) FROM destinations;"
+    # id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
+    id_dest_max = -1
 
-###
-# Fire Stations
-###
-# import
-fire_stations = gpd.read_file('./data/raw/destinations/Fire_Stations.shp')
-fire_stations = fire_stations.to_crs(crs)
+    # export
+    schools['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(schools))
+    schools['dest_type'] = 'primary_school'
+    schools = schools[['id_dest','geoid','dest_type','geometry']]
+    schools.to_postgis('destinations', engine, if_exists='append', dtype={'geometry': Geometry('POINT', srid=crs)})
+    logger.info('Schools added SQL')
 
-# identify geoid
-fire_stations = gpd.sjoin(fire_stations, df_bounds, how='inner', op='within')
+if 'fire station' in destinations:
+    ###
+    # Fire Stations
+    ###
+    # import
+    fire_stations = gpd.read_file('./data/raw/destinations/Fire_Stations.shp')
+    fire_stations = fire_stations.to_crs(crs)
 
-# get the max id_dest
-sql = "SELECT MAX(id_dest) FROM destinations;"
-id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
+    # identify geoid
+    fire_stations = gpd.sjoin(fire_stations, df_bounds, how='inner', op='within')
 
-# export
-fire_stations['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(fire_stations))
-fire_stations['dest_type'] = 'fire_station'
-fire_stations = fire_stations[['id_dest', 'geoid', 'dest_type', 'geometry']]
-fire_stations.to_postgis('destinations', engine, if_exists='append', dtype={'geometry': Geometry('POINT', srid=crs)})
-logger.info('fire_station added SQL')
+    # get the max id_dest
+    sql = "SELECT MAX(id_dest) FROM destinations;"
+    id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
+
+    # export
+    fire_stations['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(fire_stations))
+    fire_stations['dest_type'] = 'fire_station'
+    fire_stations = fire_stations[['id_dest', 'geoid', 'dest_type', 'geometry']]
+    fire_stations.to_postgis('destinations', engine, if_exists='append', dtype={'geometry': Geometry('POINT', srid=crs)})
+    logger.info('fire_station added SQL')
 
 ###
 # Pharmacies
 ###
-# import
-pharmacies = pd.read_csv('./data/raw/destinations/facility.csv')
+if 'pharmacy' in destinations:
+    # import
+    pharmacies = pd.read_csv('./data/raw/destinations/facility.csv')
 
-# filter
-pharmacies = pharmacies[pharmacies['Type'] =='Pharmacy']
-pharmacies[['lat','lon']] = pharmacies['CalcLocation'].str.split(',', expand=True).astype('float')
-pharmacies = gpd.GeoDataFrame(pharmacies, crs=crs, geometry=[Point(xy) for xy in zip(pharmacies.lon,pharmacies.lat)])
+    # filter
+    pharmacies = pharmacies[pharmacies['Type'] =='Pharmacy']
+    pharmacies[['lat','lon']] = pharmacies['CalcLocation'].str.split(',', expand=True).astype('float')
+    pharmacies = gpd.GeoDataFrame(pharmacies, crs=crs, geometry=[Point(xy) for xy in zip(pharmacies.lon,pharmacies.lat)])
 
-# identify geoid
-pharmacies = gpd.sjoin(pharmacies, df_bounds, how='inner', op='within')
+    # identify geoid
+    pharmacies = gpd.sjoin(pharmacies, df_bounds, how='inner', op='within')
 
-# get the max id_dest
-sql = "SELECT MAX(id_dest) FROM destinations;"
-id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
+    # get the max id_dest
+    sql = "SELECT MAX(id_dest) FROM destinations;"
+    id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
 
-# export
-pharmacies['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(pharmacies))
-pharmacies['dest_type'] = 'pharmacy'
-pharmacies = pharmacies[['id_dest', 'geoid', 'dest_type', 'geometry']]
-pharmacies.to_postgis('destinations', engine, if_exists='append', dtype={'geometry': Geometry('POINT', srid=crs)})
-logger.info('pharmacies added SQL')
+    # export
+    pharmacies['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(pharmacies))
+    pharmacies['dest_type'] = 'pharmacy'
+    pharmacies = pharmacies[['id_dest', 'geoid', 'dest_type', 'geometry']]
+    pharmacies.to_postgis('destinations', engine, if_exists='append', dtype={'geometry': Geometry('POINT', srid=crs)})
+    logger.info('pharmacies added SQL')
 
 ###
 # Emergency Medical Services
 ###
-# import
-hospitals = gpd.read_file('./data/raw/destinations/Hospitals.shp')
-urgent_care = gpd.read_file('./data/raw/destinations/UrgentCareFacs.shp')
-hospitals = hospitals.to_crs(crs)
-urgent_care = urgent_care.to_crs(crs)
+if 'emergency medical service' in destinations:
+    # import
+    hospitals = gpd.read_file('./data/raw/destinations/Hospitals.shp')
+    urgent_care = gpd.read_file('./data/raw/destinations/UrgentCareFacs.shp')
+    hospitals = hospitals.to_crs(crs)
+    urgent_care = urgent_care.to_crs(crs)
 
-# merge
-emergency_medical_services = hospitals['geometry'].append(urgent_care['geometry'])
-emergency_medical_services = gpd.GeoDataFrame(geometry=emergency_medical_services)
-# identify geoid
-emergency_medical_services = gpd.sjoin(emergency_medical_services, df_bounds, how='inner', op='within')
+    # merge
+    emergency_medical_services = hospitals['geometry'].append(urgent_care['geometry'])
+    emergency_medical_services = gpd.GeoDataFrame(geometry=emergency_medical_services)
+    # identify geoid
+    emergency_medical_services = gpd.sjoin(emergency_medical_services, df_bounds, how='inner', op='within')
 
-# get the max id_dest
-sql = "SELECT MAX(id_dest) FROM destinations;"
-id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
+    # get the max id_dest
+    sql = "SELECT MAX(id_dest) FROM destinations;"
+    id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
 
-# export
-emergency_medical_services['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(emergency_medical_services))
-emergency_medical_services['dest_type'] = 'emergency_medical_service'
-emergency_medical_services = emergency_medical_services[['id_dest','geoid','dest_type','geometry']]
-emergency_medical_services.to_postgis('destinations', engine, if_exists='append', dtype={
-                   'geometry': Geometry('POINT', srid=crs)})
-logger.info('emergency_medical_services added SQL')
+    # export
+    emergency_medical_services['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(emergency_medical_services))
+    emergency_medical_services['dest_type'] = 'emergency_medical_service'
+    emergency_medical_services = emergency_medical_services[['id_dest','geoid','dest_type','geometry']]
+    emergency_medical_services.to_postgis('destinations', engine, if_exists='append', dtype={
+                    'geometry': Geometry('POINT', srid=crs)})
+    logger.info('emergency_medical_services added SQL')
+
+
+###
+# Supermarkets
+###
+if 'supermarket' in destinations:
+    # import
+    snap = gpd.read_file('./data/raw/destinations/SNAP_Store_Locations.zip', mask=df_bounds)
+    snap = snap.to_crs(crs)
+
+    # filter to supermarket
+    stores = ['WALMART', 'ALDI', 'PUBLIX', 'KROGER', 'TRADER JOE', 'SAFEWAY', 'WHOLE FOODS ', 'ALBERTSONS', 'SPROUTS FARMERS', 'FOOD LION', 'RALPHS', 'SAVE-A-LOT', 'H-E-B ', 'HARRIS TEETER', 'STATER BROS.', 'GROCERY OUTLET',
+              'VONS', 'KING SOOPERS', 'STOP & SHOP', 'SMART & FINAL', 'WINN-DIXIE', 'MEIJER', 'WINCO FOODS', 'FOOD 4 LESS', 'JEWEL-OSCO', 'HY-VEE', "FRY'S", 'SHOPRITE', 'PRICE CHOPPER', 'LUCKY SUPERMARKET', 'FRED MEYER', 'FRESH MARKET',
+              '99 RANCH MARKET', 'NATURAL GROCERS', 'H MART', 'GIANT EAGLE', 'TARGET', "SMITH'S", 'ACME', 'FOOD CITY', 'GIANT', 'STAR MARKET', 'KEY FOOD', 'QFC', "RALEY'S", "BASHAS'", 'FRESH THYME', 'GORDON FOOD SERVICE', 'LIDL', 'EL SUPER',
+              'CUB FOODS', 'SCHNUCKS', 'WEGMANS', 'TOM THUMB', 'C-TOWN', 'FOODMAXX', 'MARKET BASKET', "PICK 'N SAVE", 'PATEL BROTHERS', 'LOWES FOODS', 'PIGGLY WIGGLY', "SHAW'S", 'GRISTEDES', 'BI-LO', 'HANNAFORD', 'NORTHGATE MARKET',
+              'CARDENAS', 'WINN DIXIE', "MARC'S", 'SAVE MART', 'PAVILIONS', 'NEW SEASONS MARKET', 'FOOD TOWN', 'SMART & FINAL EXTRA!', 'FAREWAY', 'FAMILY FARE', 'PRICE RITE', 'SUPER STOP & SHOP', 'FINE FARE', 'LA MICHOACANA MEAT MARKET',
+              'FIESTA MART', "BROOKSHIRE'S", 'BRAVO', 'FOODTOWN', 'LUNDS & BYERLYS', 'MARKET STREET', 'SUPERIOR', 'MORTON WILLIAMS', 'VALLARTA', 'SORIANA', 'EARTH FARE', 'FARM FRESH', 'WALGREENS', "MARIANO'S", 'INGLES',
+              'MITSUWA', 'NIJIYA ', 'NOB HILL', "GELSON'S", 'BRISTOL FARMS', 'DILLONS', 'WEIS', 'COMMISSARY', 'C TOWN', 'CERMAK', 'SUPER 1 FOODS', 'NEW INDIA BAZAAR', 'BIG SAVER FOODS', 'UNITED SUPERMARKETS', 'FESTIVAL FOODS',
+              "PETE'S FRESH MARKET", 'CASH & CARRY', "REASOR'S", 'SEAFOOD CITY', 'KEY FOODS', 'HEN HOUSE MARKET', 'PRICERITE', 'HONG KONGMARKET', 'TOPS', 'CALIMAX', 'COUNTY MARKET', "MACEY'S", "MOTHER'S", 'SAVE A LOT', 'BROOKLYN FARE',
+              'WESTSIDE', 'ASSOCIATED ', 'PRESIDENTE', 'FOOD BAZAAR', 'CHAVEZ', 'S-MART', 'UNION MARKET', 'PCC', 'METRO', 'COMPARE FOODS', 'AMAZON FRESH', 'THE FOOD EMPORIUM', 'HOMELAND', 'MI TIERRA', 'BIG Y', 'SHOP RITE', 'KINGS',
+              'ROUSES', 'FOODARAMA', 'FOODS CO', "TONY'S FINER FOODS", "D'AGOSTINO", 'JEWEL', "HARMON'S", 'FOODLAND', "AJ'S FINE FOODS", "JON'S MARKETPLACE", "LUCKY'S MARKET", "DAVE'S", 'FOOD UNIVERSE MARKETPLACE', 'HARMONS',
+              'HARPS', 'IGA', 'SAVEMART', 'STRACK & VAN TIL', 'SUPER SAVER', 'FINE FAIR', 'LA AZTECA MEAT MARKET', 'NUGGET', '168 MARKET', 'THE FRESH GROCER', 'UWAJIMAYA', 'MET', 'ROSAUERS', 'SUPER MERCADO MI TIERRA', 'WESTERN BEEF',
+              "WOODMAN'S", 'LUCKY', 'SUPER KING', "WOLLASTON'S MARKET", 'RANDALLS', "DILLON'S", 'SUPERMERCADO LA CHIQUITA', "BUSCH'S", 'SUPERFRESH', 'IDEAL FOOD BASKET', 'GOOD FORTUNE SUPERMARKET', "RALPH'S", 'MARUKAI', 'SF SUPERMARKET',
+              'FOODSCO', 'MARINA FOODS', 'THANH LONG MARIA MARKET', 'LUIS', 'SUPER A FOODS', 'SUPREMO', "HEINEN'S", 'BARONS', "SEDANO'S", 'GREENLAND MARKET', "LUNARDI'S", 'RANCH MARKET', 'BUTERA', "REDNER'S", 'DOWN TO EARTH',
+              'ARTEAGAS FOOD CENTER', 'PLUM MARKET', 'MORTON WILLIAMS SUPERMARKET', 'MADRAS GROCERIES', 'JONS', "YOKE'S FRESH MARKET", "DAVE'S MARKETPLACE", 'DIERBERGS', 'CASH SAVER', "MOLLIE STONE'S", 'KING KULLEN', "BAKER'S",
+              'VALLI PRODUCE', 'TRADE FAIR', 'SUPERSAVER', 'FOOD CO-OP']
+    # make this lower case
+    stores = [sub.replace('[.,"\'-?:!;]', '').replace('\'',
+                                                  '').replace('-', '').lower() for sub in stores]
+    snap['Store_Name'] = snap['Store_Name'].str.lower()
+    snap['Store_Name'] = snap['Store_Name'].str.replace('[^a-zA-Z ]+', '').str.replace('\'', '').str.replace('-', '')
+
+    # subset to supermarkets based on SNAP names
+    supermarkets = snap[snap['Store_Name'].str.contains('|'.join(stores))]
+    
+    # identify geoid
+    supermarkets = gpd.sjoin(supermarkets, df_bounds, how='inner', op='within')
+
+    # get the max id_dest
+    sql = "SELECT MAX(id_dest) FROM destinations;"
+    id_dest_max = pd.read_sql(sql, db['con']).values[0][0]
+
+    # export
+    supermarkets['id_dest'] = np.arange(id_dest_max+1, id_dest_max+1+len(supermarkets))
+    supermarkets['dest_type'] = 'supermarket'
+    supermarkets = supermarkets[['id_dest', 'geoid', 'dest_type', 'geometry']]
+    supermarkets.to_postgis('destinations', engine, if_exists='append', dtype={
+                    'geometry': Geometry('POINT', srid=crs)})
+    logger.info('supermarkets added SQL')
