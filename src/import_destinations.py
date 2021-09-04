@@ -193,29 +193,41 @@ if 'supermarket' in destinations:
 
     # filter to supermarket
     stores = ['WALMART', 'ALDI', 'PUBLIX', 'KROGER', 'TRADER JOE', 'SAFEWAY', 'WHOLE FOODS ', 'ALBERTSONS', 'SPROUTS FARMERS', 'FOOD LION', 'RALPHS', 'SAVE-A-LOT', 'H-E-B ', 'HARRIS TEETER', 'STATER BROS.', 'GROCERY OUTLET',
-              'VONS', 'KING SOOPERS', 'STOP & SHOP', 'SMART & FINAL', 'WINN-DIXIE', 'MEIJER', 'WINCO FOODS', 'FOOD 4 LESS', 'JEWEL-OSCO', 'HY-VEE', "FRY'S", 'SHOPRITE', 'PRICE CHOPPER', 'LUCKY SUPERMARKET', 'FRED MEYER', 'FRESH MARKET',
-              '99 RANCH MARKET', 'NATURAL GROCERS', 'H MART', 'GIANT EAGLE', 'TARGET', "SMITH'S", 'ACME', 'FOOD CITY', 'GIANT', 'STAR MARKET', 'KEY FOOD', 'QFC', "RALEY'S", "BASHAS'", 'FRESH THYME', 'GORDON FOOD SERVICE', 'LIDL', 'EL SUPER',
-              'CUB FOODS', 'SCHNUCKS', 'WEGMANS', 'TOM THUMB', 'C-TOWN', 'FOODMAXX', 'MARKET BASKET', "PICK 'N SAVE", 'PATEL BROTHERS', 'LOWES FOODS', 'PIGGLY WIGGLY', "SHAW'S", 'GRISTEDES', 'BI-LO', 'HANNAFORD', 'NORTHGATE MARKET',
-              'CARDENAS', 'WINN DIXIE', "MARC'S", 'SAVE MART', 'PAVILIONS', 'NEW SEASONS MARKET', 'FOOD TOWN', 'SMART & FINAL EXTRA!', 'FAREWAY', 'FAMILY FARE', 'PRICE RITE', 'SUPER STOP & SHOP', 'FINE FARE', 'LA MICHOACANA MEAT MARKET',
-              'FIESTA MART', "BROOKSHIRE'S", 'BRAVO', 'FOODTOWN', 'LUNDS & BYERLYS', 'MARKET STREET', 'SUPERIOR', 'MORTON WILLIAMS', 'VALLARTA', 'SORIANA', 'EARTH FARE', 'FARM FRESH', 'WALGREENS', "MARIANO'S", 'INGLES',
-              'MITSUWA', 'NIJIYA ', 'NOB HILL', "GELSON'S", 'BRISTOL FARMS', 'DILLONS', 'WEIS', 'COMMISSARY', 'C TOWN', 'CERMAK', 'SUPER 1 FOODS', 'NEW INDIA BAZAAR', 'BIG SAVER FOODS', 'UNITED SUPERMARKETS', 'FESTIVAL FOODS',
-              "PETE'S FRESH MARKET", 'CASH & CARRY', "REASOR'S", 'SEAFOOD CITY', 'KEY FOODS', 'HEN HOUSE MARKET', 'PRICERITE', 'HONG KONGMARKET', 'TOPS', 'CALIMAX', 'COUNTY MARKET', "MACEY'S", "MOTHER'S", 'SAVE A LOT', 'BROOKLYN FARE',
-              'WESTSIDE', 'ASSOCIATED ', 'PRESIDENTE', 'FOOD BAZAAR', 'CHAVEZ', 'S-MART', 'UNION MARKET', 'PCC', 'METRO', 'COMPARE FOODS', 'AMAZON FRESH', 'THE FOOD EMPORIUM', 'HOMELAND', 'MI TIERRA', 'BIG Y', 'SHOP RITE', 'KINGS',
-              'ROUSES', 'FOODARAMA', 'FOODS CO', "TONY'S FINER FOODS", "D'AGOSTINO", 'JEWEL', "HARMON'S", 'FOODLAND', "AJ'S FINE FOODS", "JON'S MARKETPLACE", "LUCKY'S MARKET", "DAVE'S", 'FOOD UNIVERSE MARKETPLACE', 'HARMONS',
-              'HARPS', 'IGA', 'SAVEMART', 'STRACK & VAN TIL', 'SUPER SAVER', 'FINE FAIR', 'LA AZTECA MEAT MARKET', 'NUGGET', '168 MARKET', 'THE FRESH GROCER', 'UWAJIMAYA', 'MET', 'ROSAUERS', 'SUPER MERCADO MI TIERRA', 'WESTERN BEEF',
-              "WOODMAN'S", 'LUCKY', 'SUPER KING', "WOLLASTON'S MARKET", 'RANDALLS', "DILLON'S", 'SUPERMERCADO LA CHIQUITA', "BUSCH'S", 'SUPERFRESH', 'IDEAL FOOD BASKET', 'GOOD FORTUNE SUPERMARKET', "RALPH'S", 'MARUKAI', 'SF SUPERMARKET',
-              'FOODSCO', 'MARINA FOODS', 'THANH LONG MARIA MARKET', 'LUIS', 'SUPER A FOODS', 'SUPREMO', "HEINEN'S", 'BARONS', "SEDANO'S", 'GREENLAND MARKET', "LUNARDI'S", 'RANCH MARKET', 'BUTERA', "REDNER'S", 'DOWN TO EARTH',
-              'ARTEAGAS FOOD CENTER', 'PLUM MARKET', 'MORTON WILLIAMS SUPERMARKET', 'MADRAS GROCERIES', 'JONS', "YOKE'S FRESH MARKET", "DAVE'S MARKETPLACE", 'DIERBERGS', 'CASH SAVER', "MOLLIE STONE'S", 'KING KULLEN', "BAKER'S",
-              'VALLI PRODUCE', 'TRADE FAIR', 'SUPERSAVER', 'FOOD CO-OP']
+                'VONS', 'KING SOOPERS',  'WINN-DIXIE', 'MEIJER', 'WINCO FOODS', 'FOOD 4 LESS', 'JEWEL-OSCO', 'HY-VEE', "FRY'S", 'SHOPRITE', 'PRICE CHOPPER', 'LUCKY SUPERMARKET', 'FRED MEYER', 'FRESH MARKET',
+                '99 RANCH MARKET', 'NATURAL GROCERS', 'H MART', 'GIANT EAGLE', 'TARGET', "SMITH'S supermarket", 'ACME', 'FOOD CITY', 'GIANT', 'STAR MARKET', 'KEY FOOD', 'QFC', "RALEY'S", "BASHAS'", 'FRESH THYME', 'GORDON FOOD SERVICE', 'LIDL', 'EL SUPER',
+                'CUB FOODS', 'SCHNUCKS', 'WEGMANS', 'TOM THUMB', 'C-TOWN', 'FOODMAXX', 'MARKET BASKET', "PICK 'N SAVE", 'PATEL BROTHERS', 'LOWES FOODS', 'PIGGLY WIGGLY', "SHAW'S", 'GRISTEDES', 'BI-LO', 'HANNAFORD', 'NORTHGATE MARKET',
+                'CARDENAS', 'WINN DIXIE', "MARC'S", 'SAVE MART', 'PAVILIONS', 'NEW SEASONS MARKET', 'FOOD TOWN', 'SMART & FINAL EXTRA!', 'FAREWAY', 'FAMILY FARE', 'PRICE RITE', 'SUPER STOP & SHOP', 'FINE FARE', 'LA MICHOACANA MEAT MARKET',
+                'FIESTA MART', "BROOKSHIRE'S", 'FOODTOWN', 'LUNDS & BYERLYS', 'MARKET STREET', 'MORTON WILLIAMS', 'VALLARTA', 'SORIANA', 'EARTH FARE', 'FARM FRESH', "MARIANO'S", 'INGLES',
+                'MITSUWA', 'NIJIYA ', 'NOB HILL', "GELSON'S", 'BRISTOL FARMS', 'DILLONS', 'WEIS', 'COMMISSARY', 'C TOWN', 'CERMAK', 'SUPER 1 FOODS', 'NEW INDIA BAZAAR', 'BIG SAVER FOODS', 'UNITED SUPERMARKETS', 'FESTIVAL FOODS',
+                "PETE'S FRESH MARKET", 'CASH & CARRY', "REASOR'S", 'SEAFOOD CITY', 'KEY FOODS', 'HEN HOUSE MARKET', 'PRICERITE', 'HONG KONGMARKET', 'TOPS market', 'CALIMAX', 'COUNTY MARKET', "MACEY'S", "MOTHER'S", 'SAVE A LOT', 'BROOKLYN FARE',
+                'WESTSIDE', 'ASSOCIATED ', 'PRESIDENTE', 'FOOD BAZAAR', 'CHAVEZ', 'S-MART', 'UNION MARKET', 'PCC', 'METRO super market', 'METRO supermarket', 'COMPARE FOODS', 'AMAZON FRESH', 'THE FOOD EMPORIUM', 'HOMELAND', 'MI TIERRA', 'BIG Y', 'SHOP RITE', 'KINGS Super',
+                'ROUSES', 'FOODARAMA', 'FOODS CO', "TONY'S FINER FOODS", "D'AGOSTINO", 'JEWEL', "HARMON'S", 'FOODLAND', "AJ'S FINE FOODS", "JON'S MARKETPLACE", "LUCKY'S MARKET", 'FOOD UNIVERSE MARKETPLACE', 'HARMONS',
+                'HARPS', 'IGA', 'SAVEMART', 'STRACK & VAN TIL', 'SUPER SAVER', 'FINE FAIR', 'LA AZTECA MEAT MARKET', 'NUGGET', '168 MARKET', 'THE FRESH GROCER', 'UWAJIMAYA', 'MET Fresh', 'MET Food', 'ROSAUERS', 'SUPER MERCADO MI TIERRA', 'WESTERN BEEF',
+                "WOODMAN'S", 'LUCKY', 'SUPER KING', "WOLLASTON'S MARKET", 'RANDALLS', "DILLON'S", 'SUPERMERCADO LA CHIQUITA', "BUSCH'S", 'SUPERFRESH', 'IDEAL FOOD BASKET', 'GOOD FORTUNE SUPERMARKET', "RALPH'S", 'MARUKAI', 'SF SUPERMARKET',
+                'FOODSCO', 'MARINA FOODS', 'THANH LONG MARIA MARKET',  'SUPER A FOODS', 'SUPREMO', "HEINEN'S", 'BARONS', "SEDANO'S", 'GREENLAND MARKET', "LUNARDI'S", 'RANCH MARKET', 'BUTERA', "REDNER'S", 'DOWN TO EARTH',
+                'ARTEAGAS FOOD CENTER', 'PLUM MARKET', 'MORTON WILLIAMS SUPERMARKET', 'MADRAS GROCERIES', 'JONS', "YOKE'S FRESH MARKET", "DAVE'S MARKETPLACE", 'DIERBERGS', 'CASH SAVER', "MOLLIE STONE'S", 'KING KULLEN', 
+                'VALLI PRODUCE', 'TRADE FAIR', 'SUPERSAVER', 'FOOD CO-OP',
+                'Giant Eagle','food giant','giant food','giant farmers','super giant',
+                'superior market','superior grocers','market by superior',
+                'daves market','daves fresh',
+                'bravo supermarket', 'bravo sabal supermarket', 'supermarket corp', 
+                ]
+    exactly = ['giant '] 
+                # I am excluding Walgreens as it is a pharmacy. others 'LUIS', 'STOP & SHOP', 'SMART & FINAL',
     # make this lower case
     stores = [sub.replace('[.,"\'-?:!;]', '').replace('\'',
-                                                  '').replace('-', '').lower() for sub in stores]
+                                                    '').replace('-', '').lower() for sub in stores]
     snap['Store_Name'] = snap['Store_Name'].str.lower()
     snap['Store_Name'] = snap['Store_Name'].str.replace('[^a-zA-Z ]+', '').str.replace('\'', '').str.replace('-', '')
 
     # subset to supermarkets based on SNAP names
     supermarkets = snap[snap['Store_Name'].str.contains('|'.join(stores))]
-    
+    exclude = [' gas ', ' fuel ', ' oil ', ' deli ', 'liquor']
+    supermarkets = supermarkets[~supermarkets['Store_Name'].str.contains('|'.join(exclude))]
+    # add exact
+    supermarket_exact = snap[snap['Store_Name'].isin(exactly)]
+    supermarkets = pd.concat([supermarkets, supermarket_exact])
+
     # identify geoid
     supermarkets = gpd.sjoin(supermarkets, df_bounds, how='inner', op='within')
 

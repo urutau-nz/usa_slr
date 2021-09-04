@@ -92,4 +92,4 @@ def main():
     logger.error('Database connection closed')
 
 main()
-post_message_to_slack("Service exposed to SLR have been determined and written to SQL")
+post_message_to_slack("Services exposed to SLR have been determined and written to SQL")
