@@ -33,7 +33,7 @@ SQL:
   table_name: distances20 # this is the name for the table of distances
   port: '5002'
   host: 132.181.102.2
-  replace: True
+  replace: False
 
 
 location:

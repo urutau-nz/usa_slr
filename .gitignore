@@ -8,3 +8,6 @@ venv
 PSn*
 Rf*
 WZk*
+slack_token.txt
+fig/
+*.pyc

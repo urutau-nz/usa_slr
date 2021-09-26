@@ -4,6 +4,7 @@ Query origin-destination pairs using OSRM
 '''
 ############## Imports ##############
 # Packages
+from slack import post_message_to_slack
 import os
 import sys
 from contextlib import contextmanager
@@ -58,17 +59,18 @@ def main(config):
     db = connect_db(config)
     # get the county geoids from origins
     geoid_counties = list(pd.read_sql(
-        'SELECT DISTINCT(geoid_county) FROM origins20', db['con'])['geoid_county'].values)
+        'SELECT DISTINCT(geoid_county) FROM origins20', db['engine'])['geoid_county'].values)
     # loop through the counties
     i = 0
-    for rise in tqdm([10,0,6,3,9,8,7,5,4,2,1]):
+    for rise in [1]:  # tqdm([10,0,6,3,9,8,7,5,4,2,1]):
         logger.error('INITIALISING DOCKER FOR RISE: {}'.format(rise))
         # reset & alter docker
         if rise == 0:
             init_osrm.main(config, logger, False, False)
         else:
             # make csv of closed road ids
-            df_osmids = pd.read_sql("SELECT from_osmid, to_osmid FROM exposed_roads WHERE rise={}".format(rise), db['con'])
+            df_osmids = pd.read_sql(
+                "SELECT from_osmid, to_osmid FROM exposed_roads WHERE rise={}".format(rise), db['engine'])
             make_roads_csv.main(df_osmids, config)
             init_osrm.main(config, logger, True, False)
         for geoid_county in tqdm(geoid_counties):
@@ -76,10 +78,12 @@ def main(config):
                 closed_ids = []
             else:
                 # get list of closed services ids
-                closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={}".format(geoid_county, rise), db['con'])
+                closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={}".format(
+                    geoid_county, rise), db['engine'])
                 closed_ids = list(closed_ids['id_dest'])
             # query the distances
-            logger.error('QUERYING POINTS FOR {}, {}'.format(geoid_county, rise))
+            logger.error('QUERYING POINTS FOR {}, {}'.format(
+                geoid_county, rise))
             origxdest = query_points(db, config, geoid_county, closed_ids)
             # format results
             origxdest['rise'] = rise
@@ -87,10 +91,11 @@ def main(config):
             # add df to sql
             write_to_postgres(origxdest, db, i)
             logger.error('Saved to SQL: {}, {}'.format(geoid_county, rise))
-            i+=1
+            i += 1
+        post_message_to_slack("Querying for rise {}ft complete".format(rise))
 
     # close the connection
-    db['con'].close()
+    db['engine'].close()
     logger.error('Database connection closed')
 
 
@@ -107,7 +112,7 @@ def connect_db(config):
     db['con'] = psycopg2.connect(db['address'])
     if db['replace']:
         input('Instructed to replace the table. Press Enter to continue...')
-    else: 
+    else:
         input('Instructed to append to the table. Press Enter to continue...')
     logger.error('Database connection established')
     return(db)
@@ -121,12 +126,12 @@ def query_points(db, config, geoid_county, closed_ids):
     logger.error('Querying invoked for {} in county #{}'.format(
         config['transport_mode'], geoid_county))
     # connect to db
-    cursor = db['con'].cursor()
+    # cursor = db['con'].cursor()
 
     # get list of all origin ids that have a population > 0
     sql = '''SELECT geoid, st_x(centroid) as x, st_y(centroid) as y FROM origins20 WHERE geoid_county='{}' AND "U7B001">0;'''.format(
         geoid_county)
-    orig_df = pd.read_sql(sql, db['con'])
+    orig_df = pd.read_sql(sql, db['engine'])
 
     # drop duplicates
     orig_df.drop_duplicates(inplace=True)
@@ -146,7 +151,7 @@ def query_points(db, config, geoid_county, closed_ids):
             '''.format("','".join(config['services']), geoid_county,)
     # sql = "SELECT id_dest, dest_type, st_x(geometry) as lon, st_y(geometry) as lat FROM destinations WHERE geoid_county={} AND dest_type IN ('{}') ;".format(
     #     geoid_county, "','".join(config['services']))
-    dest_df = pd.read_sql(sql, db['con'])
+    dest_df = pd.read_sql(sql, db['engine'])
 
     # remove closed ids
     dest_df = dest_df.loc[~dest_df['id_dest'].isin(closed_ids)]
@@ -517,11 +522,10 @@ def write_to_postgres(df, db, i, indices=True):
         from https://stackoverflow.com/a/47984180/5890574'''
     table_name = db['table_name']
     logger.error('Writing data to SQL')
-    if db['replace']:
-        if i == 0:
-            # truncates the table
-            df.head(0).to_sql(
-                table_name, db['engine'], if_exists='append', index=False)
+    if db['replace'] and i == 0:
+        # truncates the table
+        df.head(0).to_sql(
+            table_name, db['engine'], if_exists='replace', index=False)
     conn = db['engine'].raw_connection()
     cur = conn.cursor()
     output = io.StringIO()

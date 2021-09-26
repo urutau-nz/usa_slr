@@ -1,3 +1,4 @@
+from slack import post_message_to_slack
 import init_osrm
 import query
 import query_altered_network
@@ -53,6 +54,8 @@ def main(config_filename=None):
 
     # shutdown the OSRM server
     shutdown_db(config)
+    post_message_to_slack("SLR querying complete")
+
 
 
 def init_db(config):

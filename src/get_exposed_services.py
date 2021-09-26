@@ -79,7 +79,7 @@ def main():
                     WITH slr AS (SELECT geometry as geom FROM slr_raw WHERE rise='{rise}' AND inundation='{inundation}')
                     SELECT geoid, id_dest, dest_type, {rise}, '{inundation}'
                     FROM destinations, slr
-                    WHERE ST_Intersects(destinations.geometry, slr.geom) AND destinations.dest_type='supermarket';
+                    WHERE ST_Intersects(destinations.geometry, slr.geom);
                     """.format(rise=rise, inundation=inundation)
             ]
             logger.error('Creating/Appending exposed services to SQL table | {}-{}'.format(rise, inundation))

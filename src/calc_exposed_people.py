@@ -14,7 +14,7 @@ import pandas as pd
 import yaml
 import numpy as np
 from tqdm import tqdm
-
+from geoalchemy2 import Geometry, WKTElement
 
 # config
 with open('./config/main.yaml') as file:
@@ -31,9 +31,9 @@ logger = logging.getLogger(__name__)
 crs = config['set_up']['projection']
 db = main.init_db(config)
 con = db['con']
-engine = db['engine']
-conn = db['engine'].raw_connection()
-cur = conn.cursor()
+# engine = db['engine']
+# conn = db['engine'].raw_connection()
+# cur = conn.cursor()
 
 # demographic info
 demographics = ['U7B001', 'U7B003', 'U7B004', 'U7C002']
@@ -41,9 +41,9 @@ demographics = ['U7B001', 'U7B003', 'U7B004', 'U7C002']
 
 # import code
 # code.interact(local=locals())
-
-region_set = [("ALFL_MOB_TLH", 'Alabama'),( "ALFL_MOB_TLH", 'Florida'),( "CA_ChannelI", 'California'),( "CA_EKA", 'California'),( "CA_LOX", 'California'),( "CA_MTR", 'California'),(
-               "CA_SGX", 'California'),( "CT", 'Connecticut'),( "DC", 'DistrictofColumbia'),( "DE", 'Delaware'),( "FL_JAX", 'Florida'),( "FL_MFL", 'Florida'),( "FL_MLB", 'Florida'),(
+# ("DC", 'DistrictofColumbia'), ("ALFL_MOB_TLH", 'Alabama'), ("ALFL_MOB_TLH", 'Florida'),
+region_set = [("CA_ChannelI", 'California'), ("CA_EKA", 'California'), ("CA_LOX", 'California'), ("CA_MTR", 'California'), (
+               "CA_SGX", 'California'),( "CT", 'Connecticut'),( "DE", 'Delaware'),( "FL_JAX", 'Florida'),( "FL_MFL", 'Florida'),( "FL_MLB", 'Florida'),(
                "FL_TBW", 'Florida'),( "GA", 'Georgia'),( "HI_Haw", 'Hawaii'),( "HI_Kau", 'Hawaii'),( "HI_L", 'Hawaii'),( "HI_Mau", 'Hawaii'),( "HI_Molok", 'Hawaii'),( "HI_Oahu", 'Hawaii'),(
                "LA_CentralEast_slr_final_dist_poly", 'Louisiana'),( "LA_CentralNorth_slr_final_dist_poly", 'Louisiana'),( "LA_Central_slr_final_dist_poly", 'Louisiana'),(
                "LA_Delta_slr_final_dist_poly", 'Louisiana'),( "LA_LakePontchartrain_slr_final_dist_poly", 'Louisiana'),( "LA_West_slr_final_dist_poly", 'Louisiana'),(
@@ -65,9 +65,10 @@ for region, state in tqdm(region_set):
     sql = """WITH slr AS (SELECT geometry as geom FROM slr_raw WHERE region='{region}' AND rise='{rise}')
             SELECT geoid, geoid_county, geometry, "U7B001", "U7B003", "U7B004", "U7C002"
             FROM blocks20, slr
-            WHERE ST_Intersects(blocks20.geometry, slr.geom);
+            WHERE ST_Intersects(blocks20.geometry, slr.geom)
+            AND blocks20."U7B001">0;
             """.format(rise=10, region=region)
-    blocks = gpd.read_postgis(sql, con=con, geom_col='geometry')
+    blocks = gpd.read_postgis(sql, con=db['engine'], geom_col='geometry')
     blocks.drop_duplicates(inplace=True)
     logger.info('Blocks imported')
 
@@ -90,20 +91,42 @@ for region, state in tqdm(region_set):
     for i in demographics:
         blocks['{}m2'.format(i)] = blocks[i]/blocks['area']
 
+    # add block information to footprint
+    footprint_blocks = footprint_blocks.to_crs(crs)
+    footprint_blocks = footprint_blocks[['geometry','geoid','geoid_county']+demographics]
+    blocks = blocks[['U7B001m2', 'U7B003m2', 'U7B004m2', 'U7C002m2']].reset_index()
+    footprint_blocks = footprint_blocks.merge(blocks, how='left', on='geoid')
+
+    # create a tmp footprint table in SQL
+    footprint_blocks.to_postgis('tmp_footprint', db['engine'], if_exists='replace', index=False,
+                    dtype={
+                        'geometry': Geometry('POLYGON', srid=crs)}
+                    )
+    # footprint_blocks.to_sql('tmp_footprint', con=db['engine'], if_exists='replace', index=False)
+
 
     # loop through the heights
     results = []
     for rise in tqdm(np.arange(0,11)):
-        # import inundation
-        sql = "SELECT geometry FROM slr_raw WHERE region='{region}' AND rise='{rise}'".format(rise=rise, region=region)
-        inundation = gpd.read_postgis(sql, con=con, geom_col='geometry')
-        inundation = inundation.to_crs(crs)
+        # import blocks intersected with inundation
+        sql = """WITH slr AS (SELECT geometry as geom FROM slr_raw WHERE region='{region}' AND rise='{rise}')
+            SELECT ftp.*
+            FROM tmp_footprint AS ftp, slr
+            WHERE ST_Intersects(ftp.geometry, slr.geom);
+            """.format(rise=rise, region=region)
+        footprint_exposed = gpd.read_postgis(sql, con=db['engine'], geom_col='geometry', crs=crs)
+        footprint_exposed.drop_duplicates(inplace=True)
+        logger.info('Footprint {}, {}, {}ft imported'.format(region,state,rise))
 
-        # intersect footprint_blocks with inundation
-        footprint_exposed = gpd.read_file('./data/raw/footprint/{}.geojson.zip'.format(state), mask=inundation)
-        footprint_exposed = footprint_exposed.to_crs(crs)
+        # sql = "SELECT geometry FROM slr_raw WHERE region='{region}' AND rise='{rise}'".format(rise=rise, region=region)
+        # inundation = gpd.read_postgis(sql, con=con, geom_col='geometry')
+        # inundation = inundation.to_crs(crs)
+
+        # # intersect footprint_blocks with inundation
+        # footprint_exposed = gpd.read_file('./data/raw/footprint/{}.geojson.zip'.format(state), mask=inundation)
+        # footprint_exposed = footprint_exposed.to_crs(crs)
         # join population/area for block onto the 
-        footprint_exposed = gpd.sjoin(footprint_exposed, blocks, how='left', op='within')
+        # footprint_exposed = gpd.sjoin(footprint_exposed, blocks, how='left', op='within')
         footprint_exposed = footprint_exposed.to_crs(3395)
         footprint_exposed['area'] = footprint_exposed.geometry.area
         # multiply with area to determine population 

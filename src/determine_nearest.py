@@ -1,6 +1,7 @@
 '''
 Create a table with the nearest distance, grouped by destination type for each of the blocks
 '''
+from slack import post_message_to_slack
 import main
 import yaml 
 import psycopg2
@@ -27,11 +28,11 @@ conn = db['engine'].raw_connection()
 cur = conn.cursor()
 
 dest_types = pd.read_sql('Select distinct(dest_type) from destinations', db['con'])['dest_type'].values
-inundations = ['slr', 'slr_low']
+inundations = ['slr_low']
 rises = np.arange(0,11)
 
 # get the nearest distance for each block by each destination type
-queries_1 = ['DROP TABLE IF EXISTS nearest_block;',
+queries_1 = ['DROP TABLE IF EXISTS nearest_block20;',
     # """CREATE TABLE nearest_block
     # AS
     # SELECT distances.id_orig AS geoid, destinations.dest_type, MIN(distances.distance) AS distance
@@ -40,20 +41,20 @@ queries_1 = ['DROP TABLE IF EXISTS nearest_block;',
     # INNER JOIN blocks ON  distances.id_orig = blocks.geoid
     # GROUP BY distances.id_orig, destinations.dest_type;
     # """,
-    'CREATE TABLE IF NOT EXISTS nearest_block(geoid TEXT, dest_type TEXT, distance INT, rise INT, inundation TEXT)'
+    'CREATE TABLE IF NOT EXISTS nearest_block20(geoid TEXT, dest_type TEXT, distance INT, rise INT, inundation TEXT)'
 ]
-queries_2 = [''' INSERT INTO nearest_block (geoid, dest_type, distance, rise, inundation)
-        SELECT distances.id_orig as geoid, destinations.dest_type, MIN(distances.distance) as distance, distances.rise, distances.inundation
-        FROM distances
-        INNER JOIN destinations ON distances.id_dest = destinations.id_dest
-        INNER JOIN blocks20 ON  distances.id_orig = blocks20.geoid
-        WHERE distances.dest_type='{}' AND distances.inundation='{}' AND distances.rise={}
-        GROUP BY distances.id_orig, destinations.dest_type, distances.rise, distances.inundation;
+queries_2 = [''' INSERT INTO nearest_block20 (geoid, dest_type, distance, rise, inundation)
+        SELECT distances20.id_orig as geoid, destinations.dest_type, MIN(distances20.distance) as distance, distances20.rise, distances20.inundation
+        FROM distances20
+        INNER JOIN destinations ON distances20.id_dest = destinations.id_dest
+        INNER JOIN blocks20 ON  distances20.id_orig = blocks20.geoid
+        WHERE distances20.dest_type='{}' AND distances20.inundation='{}' AND distances20.rise={}
+        GROUP BY distances20.id_orig, destinations.dest_type, distances20.rise, distances20.inundation;
     '''.format(dest_type, inundation, rise)
     for dest_type in dest_types
     for inundation in inundations
     for rise in rises]
-queries_3 = ['CREATE INDEX nearest_geoid ON nearest_block (geoid)']
+queries_3 = ['CREATE INDEX nearest_geoid ON nearest_block20 (geoid)']
 
 queries = queries_1 + queries_2 + queries_3
 
@@ -67,3 +68,4 @@ logger.error('Table created')
 
 db['con'].close()
 logger.error('Database connection closed')
+post_message_to_slack("Nearest table created")

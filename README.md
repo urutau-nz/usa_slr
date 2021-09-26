@@ -10,6 +10,7 @@ Merge demographic with NHGIS data
 Handy info on geo-identifiers https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html
 
 
+
 ### Destinations
 Placed into SQL if they are within 5km of a county  # buffer distance as per Williams (2020)
 Superamrkets located same method as 500cities
