@@ -1,5 +1,7 @@
 *.tmp
-data/
+data/raw
+data/processed
+data/slr_source.json
 *__*
 cache/
 pass.txt

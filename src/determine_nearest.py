@@ -54,7 +54,7 @@ queries_2 = [''' INSERT INTO nearest_block20 (geoid, dest_type, distance, rise, 
     for dest_type in dest_types
     for inundation in inundations
     for rise in rises]
-queries_3 = ['CREATE INDEX nearest_geoid ON nearest_block20 (geoid)']
+queries_3 = ['CREATE INDEX nearest_geoid20 ON nearest_block20 (geoid)']
 
 queries = queries_1 + queries_2 + queries_3
 

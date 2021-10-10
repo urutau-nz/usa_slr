@@ -38,7 +38,8 @@ con = db['con']
 # demographic info
 demographics = ['U7B001', 'U7B003', 'U7B004', 'U7C002']
 
-
+import code
+code.interact(local=locals())
 # import code
 # code.interact(local=locals())
 # ("DC", 'DistrictofColumbia'), ("ALFL_MOB_TLH", 'Alabama'), ("ALFL_MOB_TLH", 'Florida'),
@@ -145,6 +146,11 @@ for region, state in tqdm(region_set):
     results = pd.concat(results)
     results.to_sql('exposed_people', con=db['engine'], if_exists='append', index=False)
     post_message_to_slack("Estimate for SLR exposed people in {}, {} is complete".format(region,state))
+
+
+results = pd.read_sql("Select * from exposed_people", db['con'])
+results = results.groupby(['rise']).sum()
+results.to_csv('./data/processed/exposed.csv')
 
 post_message_to_slack("Estimate for SLR exposed people for the entire USA is complete")
 

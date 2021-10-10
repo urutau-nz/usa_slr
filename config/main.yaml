@@ -24,7 +24,7 @@ metric:
 query_euclidean: True
 
 # What percent of CPU cores would you like to utilise? [0.0 - 1.0] TYPE: float
-par_frac: 0.8
+par_frac: 0.4
 
 # What name would save the distance matrix as? TYPE: str
 SQL:
