@@ -60,9 +60,10 @@ def main(config):
     # get the county geoids from origins
     geoid_counties = list(pd.read_sql(
         'SELECT DISTINCT(geoid_county) FROM origins20', db['engine'])['geoid_county'].values)
+    # geoid_counties = ['01003']
     # loop through the counties
     i = 0
-    for rise in [1]:  # tqdm([10,0,6,3,9,8,7,5,4,2,1]):
+    for rise in tqdm([10,0,6,3,9,8,7,5,4,2,1]):
         logger.error('INITIALISING DOCKER FOR RISE: {}'.format(rise))
         # reset & alter docker
         if rise == 0:
@@ -81,10 +82,17 @@ def main(config):
                 closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={}".format(
                     geoid_county, rise), db['engine'])
                 closed_ids = list(closed_ids['id_dest'])
+                exposed_origins = pd.read_sql("SELECT id_orig FROM exposed_origins20 WHERE geoid_county = '{}' AND rise={}".format(
+                    geoid_county, rise), db['engine'])
+                exposed_snaps = pd.read_sql("SELECT id_orig FROM exposed_snaps20 WHERE geoid_county = '{}' AND rise={}".format(
+                    geoid_county, rise), db['engine'])
+                exposed_origins = list(
+                    exposed_origins['id_orig']) + list(exposed_snaps['id_orig'])
+                exposed_origins = np.unique(exposed_origins)
             # query the distances
             logger.error('QUERYING POINTS FOR {}, {}'.format(
                 geoid_county, rise))
-            origxdest = query_points(db, config, geoid_county, closed_ids)
+            origxdest = query_points(db, config, geoid_county, closed_ids, exposed_origins)
             # format results
             origxdest['rise'] = rise
             origxdest['inundation'] = 'slr_low'
@@ -119,7 +127,7 @@ def connect_db(config):
 
 
 ############## Query Points ##############
-def query_points(db, config, geoid_county, closed_ids):
+def query_points(db, config, geoid_county, closed_ids, exposed_origins):
     '''
     query OSRM for distances between origins and destinations
     '''
@@ -135,6 +143,9 @@ def query_points(db, config, geoid_county, closed_ids):
 
     # drop duplicates
     orig_df.drop_duplicates(inplace=True)
+    # remove exposed ids
+    orig_df = orig_df.loc[~orig_df['geoid'].isin(exposed_origins)]
+
     # set index (different format for different census blocks)
     orig_df['geoid'] = orig_df['geoid'].astype('category')
     orig_df = orig_df.set_index('geoid')
@@ -374,6 +385,8 @@ def euclidean_query(origxdest, orig_df, dest_df, config):
         query_string = base_string + orig_string + dest_string + options_string
         # append to list of queries
         query_list.append(query_string)
+    import code
+    code.interact(local=locals())
     # # Table Query OSRM in parallel
     #define cpu usage
     num_workers = np.int(mp.cpu_count() * config['par_frac'])

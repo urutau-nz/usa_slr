@@ -33,7 +33,7 @@ def main(config, logger, update = False, silence = True):
         subprocess.run(com.split())
 
     # download the data
-    #download_data = 'wget -N https://download.geofabrik.de/{}/{}-latest.osm.pbf -P {}'.format(osm_region, osm_subregion, directory)
+    # download_data = 'wget -N https://download.geofabrik.de/{}/{}-latest.osm.pbf -P {}'.format(osm_region, osm_subregion, directory)
     # p = subprocess.run(download_data.split(), stderr=subprocess.PIPE, bufsize=0)
     # compile_osrm = '304 Not Modified' not in str(p.stderr)
     compile_osrm = True  # True  #
