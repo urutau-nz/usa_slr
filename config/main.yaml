@@ -24,7 +24,7 @@ metric:
 query_euclidean: True
 
 # What percent of CPU cores would you like to utilise? [0.0 - 1.0] TYPE: float
-par_frac: 0.4
+par_frac: 0.95
 
 # What name would save the distance matrix as? TYPE: str
 SQL:
@@ -33,7 +33,7 @@ SQL:
   table_name: distances20 # this is the name for the table of distances
   port: '5002'
   host: 132.181.102.2
-  replace: False
+  replace: True
 
 
 location:

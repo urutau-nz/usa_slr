@@ -193,7 +193,6 @@ def query_points(db, config, geoid_county, closed_ids, exposed_origins):
         origxdest = euclidean_query(
             origxdest, orig_df, dest_df, config)
         # subset
-        # code.interact(local=locals())
         origxdest = origxdest.rename_axis('id_orig').reset_index()
         origxdest = origxdest[['id_orig', 'id_dest'] +
                               config['metric']+['dest_type']]
@@ -277,7 +276,6 @@ def euclidean_subset(orig_df, dest_df):
 
 def euclidean_subset_large(orig_df, dest_df):
     # list of origxdest pairs
-    # code.interact(local=locals())
     id_origs = orig_df.index.unique()
     distance_threshold = 2000
     dests_number = 5
@@ -385,8 +383,7 @@ def euclidean_query(origxdest, orig_df, dest_df, config):
         query_string = base_string + orig_string + dest_string + options_string
         # append to list of queries
         query_list.append(query_string)
-    import code
-    code.interact(local=locals())
+
     # # Table Query OSRM in parallel
     #define cpu usage
     num_workers = np.int(mp.cpu_count() * config['par_frac'])

@@ -22,11 +22,17 @@ db = main.init_db(config)
 
 ###
 # topojson
-###
-sql = 'SELECT geoid as id, geometry FROM county'
+### geoid, 
+sql = 'SELECT geoid as id, name, state_fips, state_name, state_code, geometry FROM county'
 county = gpd.read_postgis(sql, con=db['con'], geom_col='geometry')
-topo = tp.Topology(county).topoquantize(1e6)
-topo.to_json('./data/results/county.topojson')
+# topo = tp.Topology(county).topoquantize(1e6)
+county.to_file('./data/results/county.geojson', driver='GeoJSON')
+# topo.to_json('./data/results/county.topojson')
+
+sql = 'SELECT geoid as id, geometry, state_fips, state_name, state_code FROM tract20'
+tract = gpd.read_postgis(sql, con=db['con'], geom_col='geometry')
+# # topo = tp.Topology(tract).topoquantize(1e6)
+tract.to_file('./data/results/tract.geojson', driver='GeoJSON')
 
 ###
 # csv - exposed by county (with state)

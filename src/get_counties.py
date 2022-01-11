@@ -2,7 +2,7 @@
 Create the "blocks" table in SQL
 Get all of the US blocks and find the centroid for querying
 '''
-
+from slack import post_message_to_slack
 import code
 import main
 import geopandas as gpd
@@ -16,6 +16,8 @@ from geoalchemy2 import Geometry, WKTElement
 from tqdm import tqdm
 import multiprocessing as mp
 from joblib import Parallel, delayed
+DC_STATEHOOD = 1
+import us
 
 
 # config
@@ -43,6 +45,9 @@ df_county = gpd.read_file(
     './data/raw/nhgis0085_shape/US_county_2019.shp')
 df_county = df_county.to_crs(crs)
 
+# import code
+# code.interact(local=locals())
+
 
 df_county['NAME'] = df_county['NAME'].str.replace(r"[\"\',]", '')
 
@@ -51,7 +56,13 @@ county_names = df_county['NAME'].unique()
 # code.interact(local=locals())
 
 
-df_county.rename(columns={'GEOID': 'geoid'}, inplace=True)
+df_county.rename(columns={'GEOID': 'geoid', 'STATEFP':'statefp'}, inplace=True)
+state_map_abbr = us.states.mapping('fips', 'abbr')
+state_map_name = us.states.mapping('fips', 'name')
+df_county['state_code'] = df_county['statefp']
+df_county['state_name'] = df_county['statefp']
+df_county.replace({'state_code': state_map_abbr, 'state_name': state_map_name}, inplace=True)
+
 # df_county['exposed'] = 'Undefined'
 
 # # add counties to temp table
@@ -88,6 +99,9 @@ queries = ["SET work_mem = '500MB'", "SET max_parallel_workers = '8'", "SET max_
            """CREATE TABLE IF NOT EXISTS county
                         (geoid VARCHAR,
                         name VARCHAR,
+                        state_fips VARCHAR, 
+                        state_name VARCHAR, 
+                        state_code VARCHAR, 
                         geometry geometry);"""
             ]
 # queries.extend(queries_region)
@@ -109,9 +123,9 @@ logger.info('Table created')
 cur.close()
 
 def find_counties(config, r):
-    queries_region = """INSERT INTO county (geoid, name, geometry)
+    queries_region = """INSERT INTO county (geoid, name, state_fips, state_name, state_code, geometry)
             WITH slr AS (SELECT geometry as geom FROM slr_raw WHERE rise=10)
-            SELECT DISTINCT counties.geoid, counties."NAME" as name, counties.geometry 
+            SELECT DISTINCT counties.geoid, counties."NAME" as name, counties.statefp as state_fips, counties.state_name, counties.state_code, counties.geometry 
             FROM 
                 counties_tmp as counties,
                 slr
@@ -180,3 +194,4 @@ logger.info('Database connection closed')
 # APPEND IF EXISTS. LOOP through the slr.region (python)
 # Add counties that it intersects with
 # drop duplicate counties
+post_message_to_slack("Counties written to PSQL")

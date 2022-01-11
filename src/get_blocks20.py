@@ -37,6 +37,8 @@ df_county = gpd.read_postgis(sql, con=con, geom_col='geometry')
 df_county = df_county.to_crs(crs)
 logger.error('Counties imported')
 
+
+
 # import the blocks
 # df_blocks = gpd.read_file('/homedirs/projects/data/usa/tlgdb_2020_a_us_block.gdb',
                         #   driver='FileGDB', layer=0, mask=df_county)
@@ -47,7 +49,7 @@ logger.error('Counties imported')
 # folder = Path("/homedirs/projects/data/usa/nhgis0086_shape")
 # shapefiles = folder.glob("*_block_2020.shp")
 shapefiles = ['/homedirs/projects/data/usa/nhgis0086_shape/{}_block_2020.shp'.format(i) for i in 
-['AL','AK','CA','CT','DE','DC','FL','GA','HI','LA','ME','MD','MA','MI','NH','NJ','NY','NC','OR','PA','RI','SC','TX','VT','VA','WA']]
+ ['AL','AK','CA','CT','DE','DC','FL','GA','HI','LA','ME','MD','MA','MS','NH','NJ','NY','NC','OR','PA','RI','SC','TX','VT','VA','WA']]
 # print([shp for shp in shapefiles])
 df_blocks = pd.concat([
                 gpd.read_file(shp, mask=df_county)
@@ -73,6 +75,18 @@ df_county = None
 df_blocks_select.set_geometry('geometry', inplace=True)
 logger.error('Removed blocks not within counties of interest')
 
+# merge with tracts
+# import the tracts
+# sql = 'SELECT geoid as geoid_tract, geometry FROM tract20'
+# df_tract = gpd.read_postgis(sql, con=con, geom_col='geometry')
+# df_tract = df_tract.to_crs(crs)
+# logger.error('tracts imported')
+# df_blocks_select = gpd.sjoin(
+#     df_blocks_select, df_tract, how='left', op='within')
+# df_tract = None
+# df_blocks_select.set_geometry('geometry', inplace=True)
+# logger.error('assigned tract id')
+
 # calculate the area of the blocks
 df_blocks_select = df_blocks_select.to_crs(3395)
 df_blocks_select['area'] = df_blocks_select['geometry'].area / 10**6
@@ -82,13 +96,14 @@ logger.error('Calculate block area')
 
 # merge with block demographic data
 # total population, white alone, black alone, hispanic or latino, number of housing units
-variables = ['U7B001', 'U7B003', 'U7B004', 'U7C002', 'U7G001']
+variables = ['U7B001', 'U7B003', 'U7B004', 'U7C002', 'U7G001', 'U7C005']
 df_info = pd.read_csv(
     '/homedirs/projects/data/usa/nhgis0086_csv/nhgis0086_ds248_2020_block.csv', encoding="ISO-8859-1",
     usecols=['STATEA', 'COUNTYA', 'TRACTA', 'BLOCKA'] + variables,
     dtype={x: 'str' for x in ['STATEA', 'COUNTYA', 'TRACTA', 'BLOCKA']})
 # create the geoid for merge
 df_info['geoid'] = df_info['STATEA'] + df_info['COUNTYA'] + df_info['TRACTA'] + df_info['BLOCKA']
+df_info['geoid_tract'] = df_info['STATEA'] + df_info['COUNTYA'] + df_info['TRACTA']
 df_blocks_select = df_blocks_select.merge(df_info, on='geoid')
 logger.info('Block variables found')
 
@@ -98,10 +113,13 @@ df_blocks_select['dwellings_per_km2'] = df_blocks_select['U7G001'] / df_blocks_s
 
 # set index
 
-df_write = df_blocks_select[['geoid', 'geoid_county', 'geometry',
+df_write = df_blocks_select[['geoid', 'geoid_county', 'geoid_tract', 'geometry',
                           'area', 'ppl_per_km2', 'dwellings_per_km2'] + variables]
 # df_write.rename({'polygon':'geometry'}, inplace=True)
 df_write.drop_duplicates(inplace=True)
+
+# import code
+# code.interact(local=locals())
 
 # export to sql
 df_write.to_postgis('blocks20', engine, if_exists='replace', dtype={

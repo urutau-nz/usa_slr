@@ -30,48 +30,36 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
-# open connection to DB
-
-# con = db['con']
-# engine = db['engine']
-# conn = db['engine'].raw_connection()
-# cur = conn.cursor()
-
 # demographic info
 # ['U7B001', 'U7B003', 'U7B004', 'U7C002']
 demographics = ['H7X001', 'H7X002', 'H7X003', 'H7Y003']
 
+region_set = [("DC", 'DistrictofColumbia'), ("ALFL_MOB_TLH", 'Alabama'), ("ALFL_MOB_TLH", 'Florida'), ("CA_ChannelI", 'California'), ("CA_EKA", 'California'), ("CA_LOX", 'California'), ("CA_MTR", 'California'), (
+    "CA_SGX", 'California'), ("CT", 'Connecticut'), ("DE", 'Delaware'), ("FL_JAX", 'Florida'), ("FL_MFL", 'Florida'), ("FL_MLB", 'Florida'), (
+    "FL_TBW", 'Florida'), ("GA", 'Georgia'), ("HI_Haw", 'Hawaii'), ("HI_Kau", 'Hawaii'), ("HI_L", 'Hawaii'), ("HI_Mau", 'Hawaii'), ("HI_Molok", 'Hawaii'), ("HI_Oahu", 'Hawaii'), (
+    "LA_CentralEast_slr_final_dist_poly", 'Louisiana'), ("LA_CentralNorth_slr_final_dist_poly", 'Louisiana'), ("LA_Central_slr_final_dist_poly", 'Louisiana'), (
+    "LA_Delta_slr_final_dist_poly", 'Louisiana'), ("LA_LakePontchartrain_slr_final_dist_poly", 'Louisiana'), ("LA_West_slr_final_dist_poly", 'Louisiana'), (
+    "MA", 'Massachusetts'), ("MD_E", 'Maryland'), ("MD_North", 'Maryland'), ("MD_Southe", 'Maryland'), ("MD_Southwe", 'Maryland'), ("MD_We", 'Maryland'), ("ME_E", 'Maine'), ("ME_We", 'Maine'), (
+    "MS", 'Mississippi'), ("NC_Middle1", 'NorthCarolina'), ("NC_Middle2", 'NorthCarolina'), ("NC_Northe", 'NorthCarolina'), ("NC_Southern1", 'NorthCarolina'), (
+    "NC_Southern2", 'NorthCarolina'), ("NH", 'NewHampshire'), ("NJ_Middle", 'NewJersey'), ("NJ_Northe", 'NewJersey'), ("NJ_Southe", 'NewJersey'), ("NY_Hudso", 'NewYork'), (
+    "NY_Metro", 'NewYork'), ("NY_Suffolk", 'NewYork'), ("OR_MFR", 'Oregon'), ("OR_PQR", 'Oregon'), ("PA", 'Pennsylvania'), ("RI", 'RhodeIsland'), ("SC_Ce", 'SouthCarolina'), (
+    "SC_North", 'SouthCarolina'), ("SC_South", 'SouthCarolina'), ("TX_Ce", 'Texas'), ("TX_North1", 'Texas'), ("TX_North2", 'Texas'), ("TX_South1", 'Texas'), ("TX_South2", 'Texas'), (
+    "VA_EasternShore", 'Virginia'), ("VA_Middle", 'Virginia'), ("VA_Northe", 'Virginia'), ("VA_Southe", 'Virginia'), ("WA_PQR", 'Washington'), ("WA_PugetNW", 'Washington'), (
+    "WA_PugetSW", 'Washington'), ("WA_SEW", 'Washington')]
 
-# import code
-# code.interact(local=locals())
-# import code
-# code.interact(local=locals())
-# ("DC", 'DistrictofColumbia'), ("ALFL_MOB_TLH", 'Alabama'), ("ALFL_MOB_TLH", 'Florida'),
-# ("CA_EKA", 'California'), ("CA_LOX", 'California'), ("CA_MTR", 'California'), (
-#               "CA_SGX", 'California'),( "CT", 'Connecticut'),
-# ( "HI_Haw", 'Hawaii'),( "HI_Kau", 'Hawaii'),( "HI_Mau", 'Hawaii'),( "HI_Molok", 'Hawaii'),( "HI_Oahu", 'Hawaii'),
-# ( "LA_Central_slr_final_dist_poly", 'Louisiana'),("LA_Delta_slr_final_dist_poly", 'Louisiana'),
-# ("CA_ChannelI", 'California'), ( "DE", 'Delaware'),( "FL_JAX", 'Florida'),( "FL_MFL", 'Florida'),( "FL_MLB", 'Florida'),(
-#    "FL_TBW", 'Florida'),( "GA", 'Georgia'),( "HI_L", 'Hawaii'),(
-#    "LA_CentralEast_slr_final_dist_poly", 'Louisiana'),( "LA_CentralNorth_slr_final_dist_poly", 'Louisiana'),
-# "MA",'Massachusetts'),("MD_E",'Maryland'),(
-# ("MD_Southe",'Maryland'), ("MD_We",'Maryland'),("ME_We",'Maine'),
-# "MS", 'Mississippi'),( "NC_Middle2", 'NorthCarolina'),( "NH", 'NewHampshire'),
-# ( "LA_LakePontchartrain_slr_final_dist_poly", 'Louisiana'), ("MD_North",'Maryland'),("MD_Southwe",'Maryland'),("ME_E",'Maine'),(
-# ( "NC_Southern1", 'NorthCarolina'), ( "NJ_Middle", 'NewJersey'),( "NJ_Northe", 'NewJersey'), ( "NY_Hudso", 'NewYork'),
-#"NY_Metro", 'NewYork'),( "NY_Suffolk", 'NewYork'),( "OR_MFR", 'Oregon'),( "OR_PQR", 'Oregon'),( "PA", 'Pennsylvania'),( "RI", 'RhodeIsland'),
-#
-region_set = [
+db = main.init_db(config)
+regions_existing = pd.read_sql(
+    'select distinct(region,state) from exposed_people10', con=db['engine'])
+db['engine'].dispose
+regions_existing = [
+    item for sublist in regions_existing.values for item in sublist]
 
-    ("LA_West_slr_final_dist_poly", 'Louisiana'), (
-        "NC_Middle1", 'NorthCarolina'), ("NC_Northe", 'NorthCarolina'), (
-        "NC_Southern2", 'NorthCarolina'), ("NJ_Southe", 'NewJersey'), (
-        "SC_Ce", 'SouthCarolina'), (
-        "SC_North", 'SouthCarolina'), ("SC_South", 'SouthCarolina'), ("TX_Ce", 'Texas'), ("TX_North1", 'Texas'), ("TX_North2", 'Texas'), ("TX_South1", 'Texas'), ("TX_South2", 'Texas'), (
-        "VA_EasternShore", 'Virginia'), ("VA_Middle", 'Virginia'), ("VA_Northe", 'Virginia'), ("VA_Southe", 'Virginia'), ("WA_PQR", 'Washington'), ("WA_PugetNW", 'Washington'), (
-        "WA_PugetSW", 'Washington'), ("WA_SEW", 'Washington')]
+for i in range(len(regions_existing)):
+    regions_existing[i] = regions_existing[i].replace('(', '')
+    regions_existing[i] = regions_existing[i].replace(')', '')
+    regions_existing[i] = tuple(map(str, regions_existing[i].split(',')))
 
-# for region, state in tqdm(region_set):
+regions_left = list(set(region_set) - set(regions_existing))
 
 
 def calc_exposure(region_pair, config):
@@ -195,7 +183,7 @@ def calc_exposure(region_pair, config):
 
 num_workers = np.int(mp.cpu_count() * config['par_frac'])
 Parallel(n_jobs=num_workers)(delayed(calc_exposure)(
-    region_pair, config) for region_pair in tqdm(region_set))
+    region_pair, config) for region_pair in tqdm(regions_left, ncols=80))
 
 db = main.init_db(config)
 results = pd.read_sql("Select * from exposed_people10", db['con'])

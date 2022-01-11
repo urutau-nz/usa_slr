@@ -65,9 +65,8 @@ for region, state in tqdm(region_set):
     #                           driver='FileGDB', layer=0, mask=inundation)
     # blocks = blocks.to_crs(crs)                          
     sql = """WITH slr AS (SELECT geometry as geom FROM slr_raw WHERE region='{region}' AND rise='{rise}')
-            SELECT geoid, geometry, "U7B001", "U7C005", "U7B004", "U7C002", t.geoid as geoid_tract
+            SELECT geoid, geoid_county, geometry, "U7B001", "U7B003", "U7B004", "U7C002"
             FROM blocks20, slr
-            LEFT JOIN tract20 as t ON ST_CONTAINS(t.geometry, st_centroid(blocks20.geometry))
             WHERE ST_Intersects(blocks20.geometry, slr.geom)
             AND blocks20."U7B001">0;
             """.format(rise=10, region=region)
@@ -96,8 +95,8 @@ for region, state in tqdm(region_set):
 
     # add block information to footprint
     footprint_blocks = footprint_blocks.to_crs(crs)
-    footprint_blocks = footprint_blocks[['geometry','geoid','geoid_tract']+demographics]
-    blocks = blocks[['U7B001m2', 'U7C005m2', 'U7B004m2', 'U7C002m2']].reset_index()
+    footprint_blocks = footprint_blocks[['geometry','geoid','geoid_county']+demographics]
+    blocks = blocks[['U7B001m2', 'U7B003m2', 'U7B004m2', 'U7C002m2']].reset_index()
     footprint_blocks = footprint_blocks.merge(blocks, how='left', on='geoid')
 
     # create a tmp footprint table in SQL
@@ -110,7 +109,7 @@ for region, state in tqdm(region_set):
 
     # loop through the heights
     results = []
-    for rise in tqdm(np.arange(1,11)):
+    for rise in tqdm(np.arange(0,11)):
         # import blocks intersected with inundation
         sql = """WITH slr AS (SELECT geometry as geom FROM slr_raw WHERE region='{region}' AND rise='{rise}')
             SELECT ftp.*
@@ -136,10 +135,10 @@ for region, state in tqdm(region_set):
         for i in demographics:
             footprint_exposed[i] = footprint_exposed['{}m2'.format(i)]*footprint_exposed['area']
         # sum to get population in this county, region
-        population_exposed = footprint_exposed[['geoid_tract'] + demographics].groupby('geoid_tract').sum()
+        population_exposed = footprint_exposed[['geoid_county'] + demographics].groupby('geoid_county').sum()
         population_exposed.reset_index(inplace=True)
         # append to results
-        population_exposed = population_exposed[['geoid_tract','U7B001','U7C005','U7B004','U7C002']]
+        population_exposed = population_exposed[['geoid_county','U7B001','U7B003','U7B004','U7C002']]
         population_exposed['rise'] = rise
         population_exposed['state'] = state
         results.append(population_exposed)
@@ -149,15 +148,15 @@ for region, state in tqdm(region_set):
 
     # write to sql
     results = pd.concat(results)
-    results.to_sql('exposed_people_tract', con=db['engine'], if_exists='append', index=False)
-    # post_message_to_slack("Estimate for SLR exposed people in {}, {} is complete".format(region,state))
+    results.to_sql('exposed_people', con=db['engine'], if_exists='append', index=False)
+    post_message_to_slack("Estimate for SLR exposed people in {}, {} is complete".format(region,state))
 
 
-results = pd.read_sql("Select * from exposed_people_tract", db['con'])
-results = results.groupby(['rise']).sum()
-results.to_csv('./data/processed/exposed_tract.csv')
+# results = pd.read_sql("Select * from exposed_people", db['con'])
+# results = results.groupby(['rise']).sum()
+# results.to_csv('./data/processed/exposed.csv')
 
-post_message_to_slack("Estimate for SLR exposed people (tract-level) for the entire USA is complete")
+# post_message_to_slack("Estimate for SLR exposed people for the entire USA is complete")
 
 
 
