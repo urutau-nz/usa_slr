@@ -22,27 +22,37 @@ db = main.init_db(config)
 
 ###
 # topojson
-### geoid, 
-sql = 'SELECT geoid as id, name, state_fips, state_name, state_code, geometry FROM county'
-county = gpd.read_postgis(sql, con=db['con'], geom_col='geometry')
+###
+# sql = 'SELECT geoid as id, geometry FROM county'
+# county = gpd.read_postgis(sql, con=db['con'], geom_col='geometry')
 # topo = tp.Topology(county).topoquantize(1e6)
-county.to_file('./data/results/county.geojson', driver='GeoJSON')
 # topo.to_json('./data/results/county.topojson')
-
-sql = 'SELECT geoid as id, geometry, state_fips, state_name, state_code FROM tract20'
-tract = gpd.read_postgis(sql, con=db['con'], geom_col='geometry')
-# # topo = tp.Topology(tract).topoquantize(1e6)
-tract.to_file('./data/results/tract.geojson', driver='GeoJSON')
 
 ###
 # csv - exposed by county (with state)
 ###
-# sql = 'SELECT geoid_county, state, rise, "U7B001" FROM exposed_people WHERE rise>0'
-# df = pd.read_sql(sql, db['engine'])
-# df = df.groupby(['state','geoid_county','rise']).sum()
-# df.reset_index(inplace=True)
-# df.to_csv('./data/results/expsoure20.csv')
+sql = 'SELECT geoid_county, state, rise, "U7B001" FROM exposed_people WHERE rise>0'
+df = pd.read_sql(sql, db['engine'])
+df = df.groupby(['geoid_county','rise']).sum()
+df.reset_index(inplace=True)
+df['year'] = 2020
+df.to_csv('./data/results/exposure20.csv')
 
+sql = 'SELECT geoid_county, state, rise, "H7X001" as "U7B001" FROM exposed_people10 WHERE rise>0'
+df2 = pd.read_sql(sql, db['engine'])
+df2 = df2.groupby(['geoid_county','rise']).sum()
+df2.reset_index(inplace=True)
+df2['year'] = 2010
+
+df = pd.concat([df, df2])
+df.to_csv('./data/results/exposure_county.csv')
+
+sql = 'SELECT * FROM exposed_people_tract WHERE rise>0'
+df = pd.read_sql(sql, db['engine'])
+df = df.groupby(['geoid_tract','rise']).sum()
+df.reset_index(inplace=True)
+# df['year'] = 2020
+df.to_csv('./data/results/exposure20_tract.csv')
 
 ##### ******** From WREMO
 ###
@@ -251,3 +261,4 @@ tract.to_file('./data/results/tract.geojson', driver='GeoJSON')
 # df_hists = pd.concat(hists)
 # # export
 # df_hists.to_csv('./data/results/access_bars.csv')
+

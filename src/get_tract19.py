@@ -49,7 +49,7 @@ logger.error('Counties imported')
 # shapefiles = folder.glob("*_block_2020.shp")
 # shapefiles = ['/homedirs/projects/data/usa/nhgis0087_shapefile_tl2020_us_tract_2020.zip']
 # print([shp for shp in shapefiles])
-gdf_tracts = gpd.read_file('/media/CivilSystems/data/usa/2010/nhgis0098_shapefile_tl2010_us_tract_2010.zip', mask=df_county)
+gdf_tracts = gpd.read_file('/media/CivilSystems/data/usa/2019/nhgis0099_shapefile_tl2019_us_tract_2019.zip', mask=df_county)
 
 # pd.concat([
 #                 gpd.read_file(shp, mask=df_county)
@@ -62,17 +62,18 @@ gdf_tracts = gpd.read_file('/media/CivilSystems/data/usa/2010/nhgis0098_shapefil
 # import code
 # code.interact(local=locals())
 
+
 gdf_tracts = gdf_tracts.to_crs(crs)
 logger.error('Tracts imported')
 print('Tracts imported')
 
-gdf_tracts = gdf_tracts.rename(columns={'GEOID10': 'geoid'})
+gdf_tracts = gdf_tracts.rename(columns={'GEOID': 'geoid'})
 
-gdf_tracts['state_fips'] = gdf_tracts['STATEFP10']
+gdf_tracts['state_fips'] = gdf_tracts['STATEFP']
 state_map_abbr = us.states.mapping('fips', 'abbr')
 state_map_name = us.states.mapping('fips', 'name')
-gdf_tracts['state_code'] = gdf_tracts['STATEFP10']
-gdf_tracts['state_name'] = gdf_tracts['STATEFP10']
+gdf_tracts['state_code'] = gdf_tracts['STATEFP']
+gdf_tracts['state_name'] = gdf_tracts['STATEFP']
 gdf_tracts.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)
 
@@ -82,24 +83,20 @@ gdf_tracts = gdf_tracts[['geoid', 'state_fips', 'state_code', 'state_name', 'GIS
 # Add Demographic Information
 ###
 # At the tract level include:
-# - JOIE001:     Median household income in the past 12 months (in 2010 inflation-adjusted dollars)
-# - H7Z001:      Total population
-# - H7Z003:      Not Hispanic or Latino: White alone
-# - IFE001:      Total housing units
-# - IFF001:      Total occupied housing units
-# - IFF004:      Renter occupied housing units
+# - ALW1E001:    Median household income in the past 12 months (in 2019 inflation-adjusted dollars)
+# - ALZLE001:    Total occupied housing units
+# - ALZLE003:    Renter occupied housing units
+# - ALUKE001:    Total population
+# - ALUKE003:    Not Hispanic or Latino: White alone
 
 ### 2010
-dem_tract1 = pd.read_csv('/media/CivilSystems/data/usa/2010/nhgis0098_ds176_20105_tract.csv', encoding='latin-1') 
-dem_tract2 = pd.read_csv('/media/CivilSystems/data/usa/2010/nhgis0098_ds172_2010_tract.csv', encoding='latin-1')
-
-dem_tract1.GISJOIN = dem_tract1.GISJOIN.astype('str')
-dem_tract2.GISJOIN = dem_tract2.GISJOIN.astype('str')
-
-dem_tract = dem_tract1.merge(dem_tract2, on='GISJOIN')
-dem_tract = dem_tract[['GISJOIN','JOIE001','H7Z001','H7Z003','IFE001','IFF001','IFF004',]]
+dem_tract = pd.read_csv('/media/CivilSystems/data/usa/2019/nhgis0099_ds244_20195_tract.csv', encoding='latin-1') 
+dem_tract = dem_tract[['GISJOIN','ALW1E001','ALZLE001','ALZLE003', 'ALUKE001', 'ALUKE003']]
 
 gdf_tracts = gdf_tracts.merge(dem_tract, on='GISJOIN')
+
+
+
 
 ### 2019
 
@@ -149,10 +146,10 @@ gdf_tracts = gdf_tracts.merge(dem_tract, on='GISJOIN')
 
 
 # export to sql
-gdf_tracts.to_postgis('tract10', engine, if_exists='replace', dtype={
+gdf_tracts.to_postgis('tract19', engine, if_exists='replace', dtype={
     'geometry': Geometry('MULTIPOLYGON', srid=crs)}
 )
-logger.error('Tracts10 written to PSQL')
+logger.error('Tracts19 written to PSQL')
 
 # df_write = df_blocks_select[['geoid', 'geoid_county', 'centroid', 'U7B001']]
 # df_write.rename({'centroid': 'geometry'}, inplace=True)
@@ -165,4 +162,4 @@ logger.error('Tracts10 written to PSQL')
 
 
 db['con'].close()
-post_message_to_slack("2010 Tracts written to PSQL")
+post_message_to_slack("2019 Tracts written to PSQL")

@@ -103,7 +103,7 @@ def main(config):
         post_message_to_slack("Querying for rise {}ft complete".format(rise))
 
     # close the connection
-    db['engine'].close()
+    db['engine'].dispose()
     logger.error('Database connection closed')
 
 
