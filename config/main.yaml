@@ -24,7 +24,7 @@ metric:
 query_euclidean: True
 
 # What percent of CPU cores would you like to utilise? [0.0 - 1.0] TYPE: float
-par_frac: 0.95
+par_frac: 0.5
 
 # What name would save the distance matrix as? TYPE: str
 SQL:
@@ -32,7 +32,7 @@ SQL:
   database_name: usa_slr # this is the name of the database
   table_name: distances20 # this is the name for the table of distances
   port: '5002'
-  host: 132.181.102.2
+  host: encivmu-tml62
   replace: True
 
 
@@ -48,10 +48,9 @@ OSM:
     osm_subregion: us
     osm_region: north-america
     # where do you want your OSM data saved
-    data_directory: /homedirs/projects/access_usa_slr/data/raw/osm
-
+    data_directory: /home/projects/usa_slr/data/raw/osm
 OSRM:
     host: http://localhost
-    port: '6051'
+    port: '6050'
     # Do you want the port closed after use? [True, False] TYPE: bool
     shutdown: True
