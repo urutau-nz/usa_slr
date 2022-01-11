@@ -1,6 +1,6 @@
 from slack import post_message_to_slack
 import init_osrm
-import query
+# import query
 import query_altered_network
 import yaml
 import subprocess
@@ -62,7 +62,7 @@ def init_db(config):
     '''create the database and then connect to it'''
     # SQL connection
     db = config['SQL'].copy()
-    db['passw'] = open('./config/pass.txt', 'r').read().strip('\n')
+    db['passw'] = open('/media/CivilSystems/admin/pass.txt', 'r').read().strip('\n')
     db['engine'] = create_engine('postgresql+psycopg2://postgres:' + db['passw'] +
                                  '@' + db['host'] + '/' + db['database_name'] + '?port=' + db['port'])
     db['address'] = "host=" + db['host'] + " dbname=" + db['database_name'] + \
