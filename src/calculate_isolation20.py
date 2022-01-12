@@ -57,6 +57,7 @@ isolation_tract.to_sql('isolated_tract19', db['engine'], if_exists='replace')
 isolation_tract.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_tract.csv')
 
 # County
+isolation_block['geoid_county'] = isolation_block['geoid_tract'].str[:5]
 isolation_county = isolation_block.groupby(['rise','geoid_county']).sum()
 isolation_county.reset_index(inplace=True)
 isolation_county['state_code'] = isolation_county['geoid_county'].str[:2]
@@ -73,11 +74,12 @@ isolation_state.reset_index(inplace=True)
 isolation_state['state_name'] = isolation_state['state_code']
 isolation_state.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)
-isolation_state.to_sql('isolated_state19', db['engine'], if_exists='replace')                  
+isolation_state.to_sql('isolated_state19', db['engine'], if_exists='replace')               
+isolation_state.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_state.csv')   
 
 ## Country
 isolation_country = isolation_block.groupby(['rise']).sum()
 isolation_country.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_country.csv')
 
-import code
-code.interact(local=locals())
+# import code
+# code.interact(local=locals())

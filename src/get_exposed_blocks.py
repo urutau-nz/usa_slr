@@ -22,7 +22,7 @@ import numpy as np
 
 # config
 with open('./config/main.yaml') as file:
-    config = yaml.load(file)
+    config = yaml.safe_load(file)
 # functions - logging
 import logging
 logging.basicConfig(
