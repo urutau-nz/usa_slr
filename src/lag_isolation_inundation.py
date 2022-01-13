@@ -41,10 +41,13 @@ expose = pd.read_sql(sql, db['engine'])
 time_effected = pd.merge(expose, isolate, on = 'geoid')
 
 
-# distribution plots
-sns.displot(data=time_effected, x="first_exposed", y="first_isolated", kind="kde")
-plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure.jpg')
-plt.cla()
+# # distribution plots
+# sns.displot(data=time_effected, x="first_exposed", y="first_isolated", kind="kde")
+# plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure.jpg')
+# plt.cla()
+
+# >>>>>>>>>>> can you add into time_effected a column for year. so intermediate_exposed | intermediate_isolated | high_exposed | high_isolated
+# >>> Then create the below figure so that it is showing by time instead of slr
 
 
 ## boxplots
