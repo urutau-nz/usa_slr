@@ -25,7 +25,7 @@ state_pop = state_db['pop_total'].to_list()
 exp_10ft['state_pop'] = state_pop
 exp_10ft['pop_percentage'] = (exp_10ft['U7B001']/exp_10ft['state_pop'])*100
 exp_10ft = exp_10ft.sort_values(by='pop_percentage', ascending=True)
-state_pop = list(exp_10ft['state_pop'])
+state_pop = list(exp_10ft['state_pop']) # resetting index after sorting data by %pop
 
 exp_6ft = exp_data[exp_data['rise'] == 6] 
 exp_6ft.index = exp_6ft['state_name']
@@ -39,7 +39,7 @@ exp_3ft = exp_3ft.reindex(exp_10ft.index)
 exp_3ft['state_pop'] = state_pop
 exp_3ft['pop_percentage'] = (exp_3ft['U7B001']/exp_3ft['state_pop'])*100
 
-# df of exposed pop over slr scenarios by accumulating regions into state
+# df of isolated pop over slr scenarios 
 iso_10ft = iso_data[iso_data['rise'] == 10].sort_values(by='U7B001', ascending=True)
 iso_10ft.index = iso_10ft['state_name']
 iso_10ft = iso_10ft.reindex(exp_10ft.index)
