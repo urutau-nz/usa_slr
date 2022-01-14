@@ -41,9 +41,10 @@ expose = pd.read_sql(sql, db['engine'])
 time_effected = pd.merge(expose, isolate, on = 'geoid')
 
 
-# # distribution plots
-# sns.displot(data=time_effected, x="first_exposed", y="first_isolated", kind="kde")
+# distribution plots
+# sns.displot(data=time_effected, x="first_exposed", y="first_isolated") #, kind="kde"
 # plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure.jpg')
+# plt.savefig('src/figs/test.jpg')
 # plt.cla()
 
 # >>>>>>>>>>> can you add into time_effected a column for year. so intermediate_exposed | intermediate_isolated | high_exposed | high_isolated
@@ -51,12 +52,15 @@ time_effected = pd.merge(expose, isolate, on = 'geoid')
 
 
 ## boxplots
-sns.boxplot(x="first_exposed", y="first_isolated", data=time_effected, color="white", notch=True)
-x=np.linspace(1,11,11) 
+fig, ax = plt.subplots()
+ax = sns.boxplot(x="first_exposed", y="first_isolated", data=time_effected, color="white", notch=True)
+ax = sns.swarmplot(x="first_exposed", y="first_isolated", data=time_effected, color="grey")
+x = np.linspace(1,11,11) 
 plt.plot(x,x,'k--') # identity line
 plt.xlim(1,11)
 plt.ylim(1,10)
-plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure box.jpg')
+# plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure box.jpg')
+plt.savefig('src/figs/test3.jpg')
 plt.cla()
 
 
