@@ -10,31 +10,31 @@ with open('./config/main.yaml') as file:
 
 db = main.init_db(config)
 
-sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", b."U7G001", t.geoid as geoid_tract
-                FROM blocks20 as b
+sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", b.rise, t.geoid as geoid_tract
+                FROM exposed_people20 as b
                 LEFT JOIN origins20 as o USING (geoid)
                 LEFT JOIN tract19 as t ON ST_CONTAINS(t.geometry, o.centroid)
                 WHERE o."U7B001">0;
         """
-blocks = pd.read_sql(sql, db['engine'])
-blocks.drop_duplicates(inplace=True)
-blocks.set_index('geoid', inplace=True)
-
-# block centroid
-exposure_block = pd.read_sql("Select id_orig as geoid, rise from exposed_origins20", db['con'])
+exposure_block = pd.read_sql(sql, db['engine'])
 exposure_block.drop_duplicates(inplace=True)
 exposure_block.set_index('geoid', inplace=True)
-exposure_block = exposure_block.join(blocks, how='left')
-# results = results.add_suffix('_inundated')
-exposure_block = exposure_block.reset_index()
-exposure_block.drop_duplicates(inplace=True)
+
+# block centroid
+# exposure_block = pd.read_sql("Select id_orig as geoid, rise from exposed_origins20", db['con'])
+# exposure_block.drop_duplicates(inplace=True)
+# exposure_block.set_index('geoid', inplace=True)
+# exposure_block = exposure_block.join(blocks, how='left')
+# # results = results.add_suffix('_inundated')
+# exposure_block = exposure_block.reset_index()
+# exposure_block.drop_duplicates(inplace=True)
 
 
 
 ###
 # Calculate the exposure at different spatial
-exposure_block = exposure_block[exposure_block.U7B001 > 0]
-exposure_block.to_sql('exposed_block20', db['engine'], if_exists='replace')
+# exposure_block = exposure_block[exposure_block.U7B001 > 0]
+# exposure_block.to_sql('exposed_block20', db['engine'], if_exists='replace')
 
 
 

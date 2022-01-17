@@ -80,5 +80,5 @@ ax.scatter(inter_iso['year'], inter_iso['U7B001'], color='#a5afc3')
 plt.ylabel('Number of people')
 plt.xlabel('Year')
 plt.legend()
-plt.savefig('src/figs/time_slr.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.jpg')
 

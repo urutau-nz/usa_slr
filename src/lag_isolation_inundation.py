@@ -59,8 +59,8 @@ x = np.linspace(1,11,11)
 plt.plot(x,x,'k--') # identity line
 plt.xlim(1,11)
 plt.ylim(1,10)
-# plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure box.jpg')
-plt.savefig('src/figs/test3.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure box.jpg')
+# plt.savefig('src/figs/test3.jpg')
 plt.cla()
 
 
