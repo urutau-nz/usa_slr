@@ -1,15 +1,5 @@
 '''
 Can we determine what the difference is between being isolated and being inundated?
-
-Create a table: isolated_block20
-geoid | rise
-This tells us if a block is isolated at that rise
-
-Create a table: exposed_block20
-geoid | rise
-This tells us if a block is inundated at that rise
-
-Therefore, we could look at each inundated block and determine whether it was isolated and when it was first isolated.
 '''
 
 import main
@@ -54,8 +44,11 @@ sql = """ SELECT geoid, min(rise) as first_exposed
 expose = pd.read_sql(sql, con=engine)
 
 time_effected = pd.merge(expose, isolate, on = 'geoid')
+time_effected = time_effected[time_effected['first_exposed']!=0]
+time_effected = time_effected[time_effected['first_isolated']!=0]
+time_effected = time_effected.reset_index()
 
-# rise data in m with matching dates due to three rise scenarios (extreme, high, intermediate)
+# rise data in meters with matching dates due to three rise scenarios (extreme, high, intermediate)
 exp_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/exposure_state.csv')
 iso_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/isolation_state.csv')
 
@@ -84,7 +77,6 @@ def interp_years(scenario_slr, year_list):
     exposed = exposed.set_index('rise', drop=False)
     exposed_full = exposed.interpolate(method='index')
     exposed_full = exposed_full.drop(exposed_full[exposed_full.year%1 < 0.0001].index)
-    # exposed_full = exposed_full.drop(exposed_full[exposed_full.rise > 3.5].index)
     exposed_full['type'] = ['exposed']*len(list(exposed_full['rise']))
     # isolation dfs
     isolated = total_iso.append(df)
@@ -93,7 +85,6 @@ def interp_years(scenario_slr, year_list):
     isolated = isolated.set_index('rise', drop=False)
     isolated_full = isolated.interpolate(method='index')
     isolated_full = isolated_full.drop(isolated_full[isolated_full.year%1 < 0.0001].index)
-    # isolated_full = isolated_full.drop(isolated_full[isolated_full.year > 3.5].index)
     isolated_full['type'] = ['isolated']*len(list(isolated_full['rise']))
     # append together
     df = exposed_full.append(isolated_full)
@@ -111,23 +102,14 @@ extr_iso = extreme_df[extreme_df['type']=='isolated']
 high_iso = high_df[high_df['type']=='isolated']
 inter_iso = inter_df[inter_df['type']=='isolated']
 
-extr_exp = extr_exp[['rise', 'year']].fillna(2020).round({'year':0})
-high_exp = high_exp[['rise', 'year']].fillna(2020).round({'year':0})
-inter_exp = inter_exp[['rise', 'year']].fillna(2020).round({'year':0})
-extr_iso = extr_iso[['rise', 'year']].fillna(2020).round({'year':0})
-high_iso = high_iso[['rise', 'year']].fillna(2020).round({'year':0})
-inter_iso = inter_iso[['rise', 'year']].fillna(2020).round({'year':0})
+extr_exp = extr_exp[['rise', 'year']].drop(extr_exp.index[extr_exp['rise']==0]).astype({'year':int})
+high_exp = high_exp[['rise', 'year']].drop(high_exp.index[high_exp['rise']==0]).astype({'year':int})
+inter_exp = inter_exp[['rise', 'year']].drop(inter_exp.index[inter_exp['rise']==0]).astype({'year':int})
+extr_iso = extr_iso[['rise', 'year']].drop(extr_iso.index[extr_iso['rise']==0]).astype({'year':int})
+high_iso = high_iso[['rise', 'year']].drop(high_iso.index[high_iso['rise']==0]).astype({'year':int})
+inter_iso = inter_iso[['rise', 'year']].drop(inter_iso.index[inter_iso['rise']==0]).astype({'year':int})
 
-
-# distribution plots
-sns.displot(data=time_effected, x="first_exposed", y="first_isolated", kind="kde")
-# plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before exposure.jpg')
-plt.savefig('src/figs/test.jpg')
-plt.cla()
-
-# >>>>>>>>>>> can you add into time_effected a column for year. so intermediate_exposed | intermediate_isolated | high_exposed | high_isolated
-# >>> Then create the below figure so that it is showing by time instead of slr
-
+# building columns to insert into df
 extr_year_x = []
 high_year_x = []
 inter_year_x = []
@@ -140,19 +122,19 @@ inter_df = pd.DataFrame()
 
 for i in time_effected.index:
     rise_exp = time_effected['first_exposed'].iloc[i]
-    extr_year_x.append(extr_exp['year'].iloc[rise_exp])
-    high_year_x.append(high_exp['year'].iloc[rise_exp])
+    extr_year_x.append(extr_exp['year'].iloc[rise_exp-1])
+    high_year_x.append(high_exp['year'].iloc[rise_exp-1])
     if rise_exp == 10:
         inter_year_x.append(np.nan)
     else:
-        inter_year_x.append(inter_exp['year'].iloc[rise_exp])
+        inter_year_x.append(inter_exp['year'].iloc[rise_exp-1])
     rise_iso = time_effected['first_isolated'].iloc[i]
-    extr_year_y.append(extr_iso['year'].iloc[rise_iso])
-    high_year_y.append(high_iso['year'].iloc[rise_iso])
+    extr_year_y.append(extr_iso['year'].iloc[rise_iso-1])
+    high_year_y.append(high_iso['year'].iloc[rise_iso-1])
     if rise_exp == 10:
         inter_year_y.append(np.nan)
     else:
-        inter_year_y.append(inter_iso['year'].iloc[rise_iso])
+        inter_year_y.append(inter_iso['year'].iloc[rise_iso-1])
 
 extr_df['year_isolated'] = extr_year_y
 extr_df['year_exposed'] = extr_year_x
@@ -167,35 +149,23 @@ inter_df['scenario'] = ['intermediate']*len(inter_year_y)
 new_df = (extr_df.append(high_df)).append(inter_df)
 built_old_df = (time_effected.append(time_effected)).append(time_effected)
 df = pd.concat([built_old_df, new_df], axis=1)
-df = df.drop(df[df.year_isolated < 2021].index)
-df = df.drop(df[df.year_exposed < 2021].index)
+df = df.dropna()
+df = df.astype({'year_isolated':int, 'year_exposed':int})
+df = df.append(pd.DataFrame({'year_exposed':list(range(2020,2201))}))
+x_labels = [2020, None, None, None, None, None, None, None, None, None, 2030, None, None, None, None, None, None, None, None, None, 2040, None, None, None, None, None, None, None, None, None, 2050, None, None, None, None, None, None, None, None, None, 2060, None, None, None, None, None, None, None, None, None, 2070, None, None, None, None, None, None, None, None, None, 2080, None, None, None, None, None, None, None, None, None, 2090, None, None, None, None, None, None, None, None, None, 2100, None, None, None, None, None, None, None, None, None, 2110, None, None, None, None, None, None, None, None, None, 2120, None, None, None, None, None, None, None, None, None, 2130, None, None, None, None, None, None, None, None, None, 2140, None, None, None, None, None, None, None, None, None, 2150, None, None, None, None, None, None, None, None, None, 2160, None, None, None, None, None, None, None, None, None, 2170, None, None, None, None, None, None, None, None, None, 2180, None, None, None, None, None, None, None, None, None, 2190, None, None, None, None, None, None, None, None, None, 2200]
 
-## boxplots
-def plot_box(x_column, y_column, scenario_label):
-    fig, ax = plt.subplots()
-    ax = sns.boxplot(x="first_exposed", y="first_isolated", data=time_effected, color="white", notch=True)
-    x = np.linspace(1,11,11) 
-    plt.plot(x,x,'k--') # identity line
-    plt.xlim(1,11)
-    plt.ylim(1,10)
-    plt.xticks(ticks=range(0,11), labels=exposure_scenario['year'], rotation=45)
-    plt.yticks(ticks=range(0,11), labels=isolation_scenario['year'])
-    plt.savefig('./src/figs/{}_box_plot.jpg'.format(scenario_label))
-    plt.clf()
-
-plot_box(extr_exp, extr_iso, 'extreme')
-
+# box plots on one graph
 fig, ax = plt.subplots()
 flierprops = dict(marker='.', markerfacecolor='grey', markersize=1)
-ax = sns.boxplot(x="year_exposed", y="year_isolated", data=df, hue="scenario", notch=True, width=1, flierprops=flierprops)
-# ax = sns.boxplot(x="inter_year_x", y="inter_year_y", data=time_effected, color="green", notch=True, width=0.5)
-# ax = sns.boxplot(x="high_year_x", y="high_year_y", data=time_effected, color="orange", notch=True, width=0.5)
-# ax = sns.boxplot(x="extr_year_x", y="extr_year_y", data=time_effected, color="red", notch=True, width=0.5)
-# x = np.linspace(2020,2200,100) 
-# plt.plot(x,x,'k--')
-plt.xticks(rotation=45)
+ax = sns.boxplot(x="year_exposed", y="year_isolated", data=df, hue="scenario", notch=True, width=7, flierprops=flierprops)
+x = list(range(0,181))
+y = list(range(2020,2201))
+plt.plot(x,y,'k--')
+xticks = ax.get_xticks()
+plt.xticks(rotation=45, ticks=list(range(0,181)), labels=x_labels)
 plt.xlabel('Year first exposed')
 plt.ylabel('Year first isolated')
+plt.ylim(bottom=2020, top=2200)
 plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/box_plot_time.jpg')
 plt.clf()
