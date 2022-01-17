@@ -180,8 +180,8 @@ def plot_box(x_column, y_column, scenario_label):
     plt.ylim(1,10)
     plt.xticks(ticks=range(0,11), labels=exposure_scenario['year'], rotation=45)
     plt.yticks(ticks=range(0,11), labels=isolation_scenario['year'])
-    plt.savefig('src/figs/{}_box_plot.jpg'.format(scenario_label))
-    plt.cla()
+    plt.savefig('./src/figs/{}_box_plot.jpg'.format(scenario_label))
+    plt.clf()
 
 plot_box(extr_exp, extr_iso, 'extreme')
 
@@ -197,5 +197,5 @@ plt.xticks(rotation=45)
 plt.xlabel('Year first exposed')
 plt.ylabel('Year first isolated')
 plt.tight_layout()
-plt.savefig('src/figs/box_plot_time.jpg')
-plt.cla()
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/box_plot_time.jpg')
+plt.clf()

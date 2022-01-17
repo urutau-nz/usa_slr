@@ -9,7 +9,7 @@ import seaborn as sns
 # import data
 exp_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/exposure_state.csv')
 iso_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/isolation_state.csv')
-state_db = pd.read_csv('data/results/nhgis0100_ds248_2020_state.csv')
+state_db = pd.read_csv('/media/CivilSystems/data/usa/nhgis0100_ds248_2020_state.csv')
 
 # df of exposed pop over slr scenarios
 exp_10ft = exp_data[exp_data['rise'] == 10].sort_values(by='U7B001', ascending=True)
@@ -71,6 +71,6 @@ ax.legend(loc='lower right')
 ax.set_xlabel('Percentage of state population (%)')
 ax.set_yticklabels(exp_10ft['state_name'], rotation=0)
 plt.tight_layout()
-plt.savefig('src/figs/bar_population_percentage.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/bar_population_percentage.jpg')
 
 
