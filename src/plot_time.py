@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import matplotlib
 
 # renaming columns so i know whats what
 exp_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/exposure_state.csv')
@@ -62,23 +63,30 @@ inter_iso = inter_df[inter_df['type']=='isolated']
 
 # plot figure
 fig, ax = plt.subplots()
+right_side = ax.spines["right"]
+top_side = ax.spines["top"]
+right_side.set_visible(False)
+top_side.set_visible(False)
 # ax2 = ax.twinx()
-ax.plot(extr_exp['year'], extr_exp['U7B001'], color='#1f386b', label='Exposed extreme SLR')
-ax.scatter(extr_exp['year'], extr_exp['U7B001'], color='#1f386b')
-ax.plot(high_exp['year'], high_exp['U7B001'], color='#627397', label='Exposed high SLR')
-ax.scatter(high_exp['year'], high_exp['U7B001'], color='#627397')
-ax.plot(inter_exp['year'], inter_exp['U7B001'], color='#a5afc3', label='Exposed intermediate SLR')
-ax.scatter(inter_exp['year'], inter_exp['U7B001'], color='#a5afc3')
+ax.plot(extr_iso['year'], extr_iso['U7B001'], color='#0B2948', label='Isolated: Extreme', linestyle='--')
+ax.plot(extr_exp['year'], extr_exp['U7B001'], color='#0B2948', label='Displaced: Extreme')
 
-ax.plot(extr_iso['year'], extr_iso['U7B001'], color='#1f386b', label='Isolated extreme SLR', linestyle='--')
-ax.scatter(extr_iso['year'], extr_iso['U7B001'], color='#1f386b')
-ax.plot(high_iso['year'], high_iso['U7B001'], color='#627397', label='Isolated high SLR', linestyle='--')
-ax.scatter(high_iso['year'], high_iso['U7B001'], color='#627397')
-ax.plot(inter_iso['year'], inter_iso['U7B001'], color='#a5afc3', label='Isolated intermediate SLR', linestyle='--')
-ax.scatter(inter_iso['year'], inter_iso['U7B001'], color='#a5afc3')
+# ax.scatter(extr_exp['year'], extr_exp['U7B001'], color='#1f386b')
+ax.plot(high_iso['year'], high_iso['U7B001'], color='#217AD4', label='Isolated: High', linestyle='--')
+ax.plot(high_exp['year'], high_exp['U7B001'], color='#217AD4', label='Displaced: High')
+# ax.scatter(high_exp['year'], high_exp['U7B001'], color='#627397')
+ax.plot(inter_iso['year'], inter_iso['U7B001'], color='#95C2EE', label='Isolated: Intermediate', linestyle='--')
+ax.plot(inter_exp['year'], inter_exp['U7B001'], color='#95C2EE', label='Displaced: Intermediate')
+# ax.scatter(inter_exp['year'], inter_exp['U7B001'], color='#a5afc3')
 
+# ax.scatter(extr_iso['year'], extr_iso['U7B001'], color='#1f386b')
+# ax.scatter(high_iso['year'], high_iso['U7B001'], color='#627397')
+# ax.scatter(inter_iso['year'], inter_iso['U7B001'], color='#a5afc3')
+
+ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 plt.ylabel('Number of people')
 plt.xlabel('Year')
 plt.legend()
+plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.jpg')
 
