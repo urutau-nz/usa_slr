@@ -53,6 +53,15 @@ isolation_tract['state_code'] = isolation_tract['geoid_tract'].str[:2]
 isolation_tract['state_name'] = isolation_tract['state_code']
 isolation_tract.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)
+# add the percentage of people
+tract = blocks[['geoid_tract','U7B001']].groupby(['geoid_tract']).sum()
+# merge isolation tract with tract to get 
+isolation_tract = isolation_tract.merge(tract, left_on='geoid_tract', right_index=True, suffixes=('','_total'))
+isolation_tract.drop_duplicates(inplace=True)
+# calculate percentage
+isolation_tract['U7B001_percentage'] = isolation_tract['U7B001']/isolation_tract['U7B001_total']*100 
+isolation_tract['U7B001_percentage'] = isolation_tract['U7B001_percentage'].astype(int)
+# write to sql and file
 isolation_tract.to_sql('isolated_tract19', db['engine'], if_exists='replace')
 isolation_tract.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_tract.csv')
 
@@ -64,6 +73,17 @@ isolation_county['state_code'] = isolation_county['geoid_county'].str[:2]
 isolation_county['state_name'] = isolation_county['state_code']
 isolation_county.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)
+# add the percentage of people
+county = blocks[['geoid_tract','U7B001']]
+county['geoid_county'] = county['geoid_tract'].str[:5]
+county = county[['geoid_county','U7B001']].groupby(['geoid_county']).sum()
+# merge isolation tract with tract to get 
+isolation_county = isolation_county.merge(county, left_on='geoid_county', right_index=True, suffixes=('','_total'))
+isolation_county.drop_duplicates(inplace=True)
+# calculate percentage
+isolation_county['U7B001_percentage'] = isolation_county['U7B001']/isolation_county['U7B001_total']*100 
+isolation_county['U7B001_percentage'] = isolation_county['U7B001_percentage'].astype(int)
+# write to sql and file  
 isolation_county.to_sql('isolated_county19', db['engine'], if_exists='replace')
 isolation_county.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_county.csv')
 
@@ -72,6 +92,18 @@ isolation_block['state_code'] = isolation_block['geoid_tract'].str[:2]
 isolation_state = isolation_block.groupby(['rise','state_code']).sum()
 isolation_state.reset_index(inplace=True)
 isolation_state['state_name'] = isolation_state['state_code']
+# add the percentage of people
+state_population = pd.read_csv('/media/CivilSystems/data/usa/nhgis0100_ds248_2020_state.csv', usecols=['STATEA','pop_total'])
+state_population.rename(columns={'pop_total':'U7B001'}, inplace=True)
+isolation_state['state_number'] =isolation_state['state_code'].astype('int')
+# merge isolation tract with tract to get 
+isolation_state = isolation_state.merge(state_population, left_on='state_number', right_on='STATEA', suffixes=('','_total'))
+isolation_state.drop_duplicates(inplace=True)
+isolation_state.drop(columns=['state_number','STATEA'], inplace=True)
+# calculate percentage
+isolation_state['U7B001_percentage'] = isolation_state['U7B001']/isolation_state['U7B001_total']*100 
+isolation_state['U7B001_percentage'] = isolation_state['U7B001_percentage'].astype(int)
+# write to sql and file  
 isolation_state.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)
 isolation_state.to_sql('isolated_state19', db['engine'], if_exists='replace')               
