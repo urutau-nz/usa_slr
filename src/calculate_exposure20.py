@@ -62,7 +62,7 @@ exposure_tract = exposure_tract.merge(tract, left_on='geoid_tract', right_index=
 exposure_tract.drop_duplicates(inplace=True)
 # calculate percentage
 exposure_tract['U7B001_percentage'] = exposure_tract['U7B001']/exposure_tract['U7B001_total']*100 
-exposure_tract['U7B001_percentage'] = exposure_tract['U7B001_percentage'].astype(int)
+exposure_tract['U7B001_percentage'] = exposure_tract['U7B001_percentage'].round(1)
 # write to sql and file                  
 exposure_tract.to_sql('exposed_tract19', db['engine'], if_exists='replace')
 exposure_tract.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/exposure_tract.csv')
@@ -84,7 +84,7 @@ exposure_county = exposure_county.merge(county, left_on='geoid_county', right_in
 exposure_county.drop_duplicates(inplace=True)
 # calculate percentage
 exposure_county['U7B001_percentage'] = exposure_county['U7B001']/exposure_county['U7B001_total']*100 
-exposure_county['U7B001_percentage'] = exposure_county['U7B001_percentage'].astype(int)
+exposure_county['U7B001_percentage'] = exposure_county['U7B001_percentage'].round(1)
 # write to sql and file  
 exposure_county.to_sql('exposed_county19', db['engine'], if_exists='replace')
 exposure_county.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/exposure_county.csv')
@@ -104,7 +104,7 @@ exposure_state.drop_duplicates(inplace=True)
 exposure_state.drop(columns=['state_number','STATEA'], inplace=True)
 # calculate percentage
 exposure_state['U7B001_percentage'] = exposure_state['U7B001']/exposure_state['U7B001_total']*100 
-exposure_state['U7B001_percentage'] = exposure_state['U7B001_percentage'].astype(int)
+exposure_state['U7B001_percentage'] = exposure_state['U7B001_percentage'].round(1)
 # write to sql and file 
 exposure_state.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)

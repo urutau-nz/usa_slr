@@ -26,9 +26,14 @@ blocks.set_index('geoid', inplace=True)
 isolation_block = []
 isolation_country = []
 for slr in range(11):
-    dist = pd.read_sql(
-        "SELECT geoid, distance FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='supermarket' AND distance IS NOT NULL".format(slr), db['con'])
-    with_access = blocks.index.isin(dist.geoid)
+    dist_fire = pd.read_sql(
+        "SELECT geoid FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='fire_station' AND distance IS NOT NULL".format(slr), db['con'])
+    dist_school = pd.read_sql(
+        "SELECT geoid FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='primary_school' AND distance IS NOT NULL".format(slr), db['con'])
+    dist_health = pd.read_sql(
+        "SELECT geoid FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='emergency_medical_service' AND distance IS NOT NULL".format(slr), db['con'])
+    dist_all = set.intersection(*map(set,[dist_fire.geoid.values, dist_school.geoid.values,dist_health.geoid.values]))
+    with_access = blocks.index.isin(dist_all)
     isolated = blocks[~with_access]
     # these lines calculate the country's isolation
     result = pd.DataFrame(isolated.sum()).transpose()
@@ -60,7 +65,7 @@ isolation_tract = isolation_tract.merge(tract, left_on='geoid_tract', right_inde
 isolation_tract.drop_duplicates(inplace=True)
 # calculate percentage
 isolation_tract['U7B001_percentage'] = isolation_tract['U7B001']/isolation_tract['U7B001_total']*100 
-isolation_tract['U7B001_percentage'] = isolation_tract['U7B001_percentage'].astype(int)
+isolation_tract['U7B001_percentage'] = isolation_tract['U7B001_percentage'].round(1)
 # write to sql and file
 isolation_tract.to_sql('isolated_tract19', db['engine'], if_exists='replace')
 isolation_tract.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_tract.csv')
@@ -82,10 +87,11 @@ isolation_county = isolation_county.merge(county, left_on='geoid_county', right_
 isolation_county.drop_duplicates(inplace=True)
 # calculate percentage
 isolation_county['U7B001_percentage'] = isolation_county['U7B001']/isolation_county['U7B001_total']*100 
-isolation_county['U7B001_percentage'] = isolation_county['U7B001_percentage'].astype(int)
+isolation_county['U7B001_percentage'] = isolation_county['U7B001_percentage'].round(1)
 # write to sql and file  
 isolation_county.to_sql('isolated_county19', db['engine'], if_exists='replace')
 isolation_county.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_county.csv')
+isolation_county[isolation_county.rise==6].to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_county_6.csv')
 
 # State
 isolation_block['state_code'] = isolation_block['geoid_tract'].str[:2]
@@ -102,7 +108,7 @@ isolation_state.drop_duplicates(inplace=True)
 isolation_state.drop(columns=['state_number','STATEA'], inplace=True)
 # calculate percentage
 isolation_state['U7B001_percentage'] = isolation_state['U7B001']/isolation_state['U7B001_total']*100 
-isolation_state['U7B001_percentage'] = isolation_state['U7B001_percentage'].astype(int)
+isolation_state['U7B001_percentage'] = isolation_state['U7B001_percentage'].round(1)
 # write to sql and file  
 isolation_state.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)

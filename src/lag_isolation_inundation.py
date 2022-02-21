@@ -63,6 +63,3 @@ plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time lag before 
 # plt.savefig('src/figs/test3.jpg')
 plt.cla()
 
-
-
-hi

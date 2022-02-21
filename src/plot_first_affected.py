@@ -9,6 +9,7 @@ import pandas as pd
 import yaml
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib
 with open('./config/main.yaml') as file:
     config = yaml.safe_load(file)
 
@@ -23,6 +24,12 @@ from joblib import Parallel, delayed
 import shapely as shp
 from tqdm import tqdm
 import seaborn as sns
+import us
+state_map_abbr = us.states.mapping('fips', 'abbr')
+
+from pylab import rcParams
+rcParams['figure.figsize'] = 7, 5
+rcParams['pdf.fonttype'] = 42
 
 passw = open('/media/CivilSystems/admin/pass.txt', 'r').read().strip('\n')
 port = '5002'
@@ -33,9 +40,11 @@ engine = create_engine('postgresql+psycopg2://postgres:' + passw + '@' + db_host
 # import data
 sql = """ SELECT geoid, min(rise) as first_isolated
                 FROM isolated_block20
+
                 GROUP BY geoid;
         """
 isolate = pd.read_sql(sql, con=engine)
+# isolate = isolate[isolate.first_isolated>0]
 
 sql = """ SELECT geoid, min(rise) as first_exposed
                 FROM exposed_block20
@@ -43,7 +52,13 @@ sql = """ SELECT geoid, min(rise) as first_exposed
         """
 expose = pd.read_sql(sql, con=engine)
 
-time_effected = pd.merge(expose, isolate, on = 'geoid')
+# import population
+sql = """ SELECT geoid, "U7B001"
+                FROM origins20
+        """
+pop = pd.read_sql(sql, con=engine)
+
+time_effected = pd.merge(isolate, expose, on = 'geoid')
 time_effected = time_effected[time_effected['first_exposed']!=0]
 time_effected = time_effected[time_effected['first_isolated']!=0]
 time_effected = time_effected.reset_index()
@@ -56,7 +71,7 @@ year = list(range(2010,2110,10))
 year.extend([2120, 2150, 2200])
 extr_slr = (np.array([0.04, 0.11, 0.24, 0.41, 0.63, 0.9, 1.2, 1.6, 2, 2.5, 3.6, 5.5, 9.7])*3.281).tolist()
 high_slr = (np.array([0.05, 0.11, 0.21, 0.36, 0.54, 0.77, 1, 1.3, 1.7, 2, 2.8, 4.3, 7.5])*3.281).tolist()
-int_slr = (np.array([0.04, 0.1, 0.16, 0.25, 0.34, 0.45, 0.57, 0.71, 0.85, 1, 1.3, 1.8, 2.8])*3.281).tolist()
+int_slr = (np.array([0.04, 0.1, 0.16, 0.25, 0.34, 0.45, 0.57, 0.71, 0.85, 1, 1.3, 1.8, 2.8, 3.048])*3.281).tolist()
 
 total_exp = exp_data.groupby('rise').sum()
 total_exp['rise'] = total_exp.index
@@ -92,7 +107,7 @@ def interp_years(scenario_slr, year_list):
 
 extreme_df = interp_years(extr_slr, year)
 high_df = interp_years(high_slr, year)
-inter_df = interp_years(int_slr, year)
+inter_df = interp_years(int_slr, year+[2210])
 
 # seperate for plotting 
 extr_exp = extreme_df[extreme_df['type']=='exposed']
@@ -152,20 +167,180 @@ df = pd.concat([built_old_df, new_df], axis=1)
 df = df.dropna()
 df = df.astype({'year_isolated':int, 'year_exposed':int})
 df = df.append(pd.DataFrame({'year_exposed':list(range(2020,2201))}))
-x_labels = [2020, None, None, None, None, None, None, None, None, None, 2030, None, None, None, None, None, None, None, None, None, 2040, None, None, None, None, None, None, None, None, None, 2050, None, None, None, None, None, None, None, None, None, 2060, None, None, None, None, None, None, None, None, None, 2070, None, None, None, None, None, None, None, None, None, 2080, None, None, None, None, None, None, None, None, None, 2090, None, None, None, None, None, None, None, None, None, 2100, None, None, None, None, None, None, None, None, None, 2110, None, None, None, None, None, None, None, None, None, 2120, None, None, None, None, None, None, None, None, None, 2130, None, None, None, None, None, None, None, None, None, 2140, None, None, None, None, None, None, None, None, None, 2150, None, None, None, None, None, None, None, None, None, 2160, None, None, None, None, None, None, None, None, None, 2170, None, None, None, None, None, None, None, None, None, 2180, None, None, None, None, None, None, None, None, None, 2190, None, None, None, None, None, None, None, None, None, 2200]
+y_labels = [2020, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2040, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2060, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2080, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2100, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2120, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2140, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2160, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2180, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 2200]
+
+
+
+# add population
+df = pd.merge(df, pop, how='left', on='geoid')
+df_exposed = df['year_exposed'].repeat(df['U7B001'].fillna(1))
+df_isolated = df['year_isolated'].repeat(df['U7B001'].fillna(1))
+df_scenario = df['scenario'].repeat(df['U7B001'].fillna(1))
+
+
+df_popweighted = pd.concat([df_exposed, df_isolated, df_scenario], axis=1)
+# import code
+# code.interact(local=locals())
+df_popweighted = df_popweighted[df_popweighted.scenario!='high']
+
+
+
 
 # box plots on one graph
 fig, ax = plt.subplots()
 flierprops = dict(marker='.', markerfacecolor='grey', markersize=1)
-ax = sns.boxplot(x="year_exposed", y="year_isolated", data=df, hue="scenario", notch=True, width=7, flierprops=flierprops)
-x = list(range(0,181))
-y = list(range(2020,2201))
-plt.plot(x,y,'k--')
-xticks = ax.get_xticks()
-plt.xticks(rotation=45, ticks=list(range(0,181)), labels=x_labels)
-plt.xlabel('Year first exposed')
-plt.ylabel('Year first isolated')
-plt.ylim(bottom=2020, top=2200)
+ax = sns.boxplot(y="year_exposed", x="year_isolated", data=df_popweighted, hue="scenario", notch=True, width=7, flierprops=flierprops, orient='h', whis=[5, 95], showfliers = False, palette={'extreme':'#0B2948', 'high':'#FCAB10', 'intermediate':'#95c2ee'})
+y = list(range(0,181))
+x = list(range(2020,2201))
+plt.plot(x,y,'k--',alpha=0.5)
+yticks = ax.get_yticks()
+plt.yticks(rotation=0, ticks=list(range(0,181)), labels=y_labels)
+plt.ylabel('Year Inundation First Occurs')
+plt.xlabel('Year Isolation First Occurs')
+# plt.ylim(bottom=2020, top=2200)
+# plt.legend(labels = ["Intermediate", "Extreme"])
 plt.tight_layout()
-plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/box_plot_time.jpg')
-plt.clf()
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_box_pop.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_box_pop.pdf')
+plt.close()
+
+
+###
+# Plot a histogram of the difference between isolation and displacement
+extreme_df = interp_years(extr_slr, year)
+inter_df = interp_years(int_slr, year+[2210])
+
+time_effected = pd.merge(isolate, expose, how='left', on = 'geoid')
+time_effected['isolated_extreme'] = time_effected['first_isolated']
+time_effected['isolated_intermediate'] = time_effected['first_isolated']
+time_effected['exposed_intermediate'] = time_effected['first_exposed']
+time_effected['exposed_extreme'] = time_effected['first_exposed']
+
+mapper_extreme = extreme_df[['rise','year']].drop_duplicates().set_index('rise')['year'].to_dict()
+mapper_intermediate = inter_df[['rise','year']].drop_duplicates().set_index('rise')['year'].to_dict()
+
+time_effected = time_effected.replace({'isolated_extreme':mapper_extreme, 'exposed_extreme': mapper_extreme, 'isolated_intermediate':mapper_intermediate, 'exposed_intermediate': mapper_intermediate})
+
+time_effected['difference_extreme'] = time_effected['exposed_extreme'] - time_effected['isolated_extreme']
+time_effected['difference_intermediate'] = time_effected['exposed_intermediate'] - time_effected['isolated_intermediate']
+
+time_effected = pd.merge(time_effected, pop, on='geoid', how='left')
+
+delayed_onset = time_effected[['difference_intermediate','difference_extreme', 'U7B001']]
+
+# plt
+colors = ['#95c2ee','#0B2948']
+delayed_onset = delayed_onset.fillna(170)
+bin_list = np.arange(-5,185,10)
+fig, ax = plt.subplots()
+plt.hist(delayed_onset[['difference_extreme','difference_intermediate']], bin_list, weights=delayed_onset[['U7B001','U7B001']], color=colors)
+ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+plt.xlabel("Time lag between onset of inundation and isolation (Years)")
+plt.ylabel("Number of People")
+plt.legend(labels = ["Intermediate", "Extreme"])
+# labels = [item.get_text() for item in ax.get_xticklabels()]
+# labels[-1] = 'NI'
+# ax.set_xticklabels(labels)
+plt.tight_layout()
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_histogram.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_histogram.pdf')
+plt.close()
+
+
+
+##
+# create these figures by state
+rcParams['figure.figsize'] = 2.8, 2.4
+rcParams.update({'font.size': 20})
+rcParams['axes.titley'] = 1.0    # y is in axes-relative coordinates.
+rcParams['axes.titlepad'] = -14
+time_effected['state_code'] = time_effected['geoid'].str[:2]
+
+time_effected.replace({'state_code': state_map_abbr}, inplace=True)
+
+
+delayed_onset = time_effected[['difference_intermediate','difference_extreme', 'U7B001','state_code']]
+delayed_onset = delayed_onset.fillna(170)
+# loop through states
+states = delayed_onset.state_code.unique()
+colors = ['#95c2ee']
+
+full_plot_data = pd.DataFrame()
+h = plt.hist(delayed_onset[['difference_intermediate']], bin_list, weights=delayed_onset[['U7B001']], color=colors)
+bin_centers = h[1][:-1] + np.diff(h[1])/2
+plot_data = pd.DataFrame({'x':bin_centers, 'y':h[0], 'state':'all', 'scenario':'intermediate'})
+full_plot_data = pd.concat([full_plot_data, plot_data])
+
+for state in states:
+    df_plot = delayed_onset[delayed_onset.state_code==state]
+    fig, ax = plt.subplots()
+    right_side = ax.spines["right"]
+    top_side = ax.spines["top"]
+    right_side.set_visible(False)
+    top_side.set_visible(False)
+    h = plt.hist(df_plot[['difference_intermediate']], bin_list, weights=df_plot[['U7B001']], color=colors)
+    bin_centers = h[1][:-1] + np.diff(h[1])/2
+    plot_data = pd.DataFrame({'x':bin_centers, 'y':h[0], 'state':state, 'scenario':'intermediate'})
+    ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda y, pos: '%.0f' % (y * 1e-3)))
+    # ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+    # plt.xlabel("Time lag between onset of inundation and isolation (Years)")
+    # plt.ylabel("Number of People")
+    # plt.legend(labels = ["Intermediate", "Extreme"])
+    plt.title(state)
+    # labels = [item.get_text() for item in ax.get_xticklabels()]
+    # labels[-1] = 'NI'
+    # ax.set_xticklabels(labels)
+    # plt.xticks(rotation = 90)
+    plt.yticks(rotation = 90)
+    plt.tight_layout()
+    plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_histogram_{}.pdf'.format(state))
+    plt.close()
+    full_plot_data = pd.concat([full_plot_data, plot_data])
+
+delayed_onset.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/delayed_onset.csv')
+full_plot_data.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/delayed_onset_histogram_data.csv')
+
+
+
+###
+# Plot a histogram of the that never inundated blocks are first isolated
+rcParams['figure.figsize'] = 7, 5
+rcParams['pdf.fonttype'] = 42
+extreme_df = interp_years(extr_slr, year)
+inter_df = interp_years(int_slr, year+[2210])
+
+time_effected = pd.merge(isolate, expose, how='left', on = 'geoid')
+time_effected['isolated_extreme'] = time_effected['first_isolated']
+time_effected['isolated_intermediate'] = time_effected['first_isolated']
+time_effected['exposed_intermediate'] = time_effected['first_exposed']
+time_effected['exposed_extreme'] = time_effected['first_exposed']
+
+mapper_extreme = extreme_df[['rise','year']].drop_duplicates().set_index('rise')['year'].to_dict()
+mapper_intermediate = inter_df[['rise','year']].drop_duplicates().set_index('rise')['year'].to_dict()
+
+time_effected = time_effected.replace({'isolated_extreme':mapper_extreme, 'exposed_extreme': mapper_extreme, 'isolated_intermediate':mapper_intermediate, 'exposed_intermediate': mapper_intermediate})
+
+# time_effected['difference_extreme'] = time_effected['exposed_extreme'] - time_effected['isolated_extreme']
+# time_effected['difference_intermediate'] = time_effected['exposed_intermediate'] - time_effected['isolated_intermediate']
+
+time_effected = pd.merge(time_effected, pop, on='geoid', how='left')
+
+never_inundated = time_effected[time_effected.first_exposed.isna()]
+
+# plt
+colors = ['#95c2ee','#0B2948']
+# delayed_onset = delayed_onset.fillna(170)
+# bin_list = np.arange(-5,185,10)
+fig, ax = plt.subplots()
+plt.hist(never_inundated[['isolated_intermediate','isolated_extreme']], weights=never_inundated[['U7B001','U7B001']], color=colors)
+ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+plt.xlabel("When are blocks that are never inundated first isolated (Year)")
+plt.ylabel("Number of People")
+plt.legend(labels = ["Intermediate", "Extreme"])
+# labels = [item.get_text() for item in ax.get_xticklabels()]
+# labels[-1] = 'NI'
+# ax.set_xticklabels(labels)
+plt.tight_layout()
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/never_inundated.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/never_inundated.pdf')
+plt.close()

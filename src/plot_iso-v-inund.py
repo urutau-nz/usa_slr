@@ -3,6 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib
+from pylab import rcParams
+rcParams['figure.figsize'] = 7, 5
+rcParams['pdf.fonttype'] = 42
 
 #Read data
 iso = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_country.csv')
@@ -21,7 +24,9 @@ plt.ylabel("Number of People")
 ax.plot(iso.rise[1:11]*0.3, iso.U7B001[1:11], color = '#0B2948', linewidth=2, linestyle='--')
 ax.plot(inu.rise*0.3, inu.U7B001, color = '#0B2948', linewidth=2)
 ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
-ax.legend(labels = ["Isolated", "Displaced"])
+ax.legend(labels = ["Isolated", "Inundated"])
 plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/iso-v-inu.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/iso-v-inu.pdf')
 # plt.show()
+

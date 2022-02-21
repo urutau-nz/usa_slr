@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import matplotlib
+from pylab import rcParams
+rcParams['figure.figsize'] = 7, 5
+rcParams['pdf.fonttype'] = 42
 
 # renaming columns so i know whats what
 exp_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/exposure_state.csv')
@@ -69,14 +72,14 @@ right_side.set_visible(False)
 top_side.set_visible(False)
 # ax2 = ax.twinx()
 ax.plot(extr_iso['year'], extr_iso['U7B001'], color='#0B2948', label='Isolated: Extreme', linestyle='--')
-ax.plot(extr_exp['year'], extr_exp['U7B001'], color='#0B2948', label='Displaced: Extreme')
+ax.plot(extr_exp['year'], extr_exp['U7B001'], color='#0B2948', label='Inundated: Extreme')
 
 # ax.scatter(extr_exp['year'], extr_exp['U7B001'], color='#1f386b')
 ax.plot(high_iso['year'], high_iso['U7B001'], color='#217AD4', label='Isolated: High', linestyle='--')
-ax.plot(high_exp['year'], high_exp['U7B001'], color='#217AD4', label='Displaced: High')
+ax.plot(high_exp['year'], high_exp['U7B001'], color='#217AD4', label='Inundated: High')
 # ax.scatter(high_exp['year'], high_exp['U7B001'], color='#627397')
 ax.plot(inter_iso['year'], inter_iso['U7B001'], color='#95C2EE', label='Isolated: Intermediate', linestyle='--')
-ax.plot(inter_exp['year'], inter_exp['U7B001'], color='#95C2EE', label='Displaced: Intermediate')
+ax.plot(inter_exp['year'], inter_exp['U7B001'], color='#95C2EE', label='Inundated: Intermediate')
 # ax.scatter(inter_exp['year'], inter_exp['U7B001'], color='#a5afc3')
 
 # ax.scatter(extr_iso['year'], extr_iso['U7B001'], color='#1f386b')
@@ -89,4 +92,5 @@ plt.xlabel('Year')
 plt.legend()
 plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.jpg')
+plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.pdf')
 
