@@ -20,9 +20,18 @@ blocks = pd.read_sql(sql, db['engine'])
 blocks.drop_duplicates(inplace=True)
 blocks.set_index('geoid', inplace=True)
 
-sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", b.rise, t.geoid as geoid_tract
-                FROM exposed_people20 as b
-                LEFT JOIN origins20 as o USING (geoid)
+# if using building footprint area ratio
+# sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", b.rise, t.geoid as geoid_tract
+#                 FROM exposed_people20 as b
+#                 LEFT JOIN origins20 as o USING (geoid)
+#                 LEFT JOIN tract19 as t ON ST_CONTAINS(t.geometry, o.centroid)
+#                 WHERE o."U7B001">0;
+#         """
+# if using block centroids:
+sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", e.rise, t.geoid as geoid_tract
+                FROM exposed_origins20 as e
+                LEFT JOIN blocks20 as b ON e.id_orig=b.geoid
+                LEFT JOIN origins20 as o ON e.id_orig=o.geoid
                 LEFT JOIN tract19 as t ON ST_CONTAINS(t.geometry, o.centroid)
                 WHERE o."U7B001">0;
         """
@@ -42,10 +51,10 @@ exposure_block.set_index('geoid', inplace=True)
 
 
 ###
-# Calculate the exposure at different spatial
-# exposure_block = exposure_block[exposure_block.U7B001 > 0]
-# exposure_block.to_sql('exposed_block20', db['engine'], if_exists='replace')
-
+# Calculate the exposure at different spatial scales
+exposure_block = exposure_block[exposure_block.U7B001 > 0]
+exposure_block.to_sql('exposed_block20', db['engine'], if_exists='replace')
+exposure_block.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_block.csv')
 
 
 ## Tract
@@ -65,7 +74,7 @@ exposure_tract['U7B001_percentage'] = exposure_tract['U7B001']/exposure_tract['U
 exposure_tract['U7B001_percentage'] = exposure_tract['U7B001_percentage'].round(1)
 # write to sql and file                  
 exposure_tract.to_sql('exposed_tract19', db['engine'], if_exists='replace')
-exposure_tract.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/exposure_tract.csv')
+exposure_tract.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_tract.csv')
 
 # County
 exposure_block['geoid_county'] = exposure_block['geoid_tract'].str[:5]
@@ -87,7 +96,7 @@ exposure_county['U7B001_percentage'] = exposure_county['U7B001']/exposure_county
 exposure_county['U7B001_percentage'] = exposure_county['U7B001_percentage'].round(1)
 # write to sql and file  
 exposure_county.to_sql('exposed_county19', db['engine'], if_exists='replace')
-exposure_county.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/exposure_county.csv')
+exposure_county.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_county.csv')
 
 # State
 exposure_block['state_code'] = exposure_block['geoid_tract'].str[:2]
@@ -109,12 +118,12 @@ exposure_state['U7B001_percentage'] = exposure_state['U7B001_percentage'].round(
 exposure_state.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)
 exposure_state.to_sql('exposed_state19', db['engine'], if_exists='replace')                 
-exposure_state.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/exposure_state.csv')
+exposure_state.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_state.csv')
 
 
 ## Country
 exposure_country = exposure_block.groupby(['rise']).sum()
-exposure_country.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/exposure_country.csv')
+exposure_country.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_country.csv')
 
 # import code
 # code.interact(local=locals())
