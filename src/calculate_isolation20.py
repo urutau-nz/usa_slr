@@ -35,6 +35,11 @@ for slr in range(11):
     dist_all = set.intersection(*map(set,[dist_fire.geoid.values, dist_school.geoid.values,dist_health.geoid.values]))
     with_access = blocks.index.isin(dist_all)
     isolated = blocks[~with_access]
+    # subtract the zero SLR case from the data
+    if slr==0:
+        iso_0 = isolated
+    else:
+        isolated.loc[iso_0.index,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] =  isolated.loc[iso_0.index,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] - iso_0.loc[iso_0.index,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]]
     # these lines calculate the country's isolation
     result = pd.DataFrame(isolated.sum()).transpose()
     result['rise'] = slr
@@ -47,6 +52,9 @@ for slr in range(11):
 
 isolation_block = pd.concat(isolation_block)
 isolation_block.to_sql('isolated_block20', db['engine'], if_exists='replace')
+isolation_block.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_block.csv')
+
+
 
 ###
 # Calculate the isolation at other spatial resolutions
