@@ -97,6 +97,7 @@ exposure_county['U7B001_percentage'] = exposure_county['U7B001_percentage'].roun
 # write to sql and file  
 exposure_county.to_sql('exposed_county19', db['engine'], if_exists='replace')
 exposure_county.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_county.csv')
+exposure_county[exposure_county.rise==6].to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_county_6.csv')
 
 # State
 exposure_block['state_code'] = exposure_block['geoid_tract'].str[:2]
