@@ -35,11 +35,13 @@ for slr in range(11):
     dist_all = set.intersection(*map(set,[dist_fire.geoid.values, dist_school.geoid.values,dist_health.geoid.values]))
     with_access = blocks.index.isin(dist_all)
     isolated = blocks[~with_access]
-    # subtract the zero SLR case from the data
+    # subtract the zero SLR case from the data (but only if it is also isolated at 1ft)
     if slr==0:
-        iso_0 = isolated
-    else:
-        isolated.loc[iso_0.index,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] =  isolated.loc[iso_0.index,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] - iso_0.loc[iso_0.index,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]]
+        iso_0 = isolated.copy()
+    if slr==1:
+        ids_0 = set.intersection(*map(set,[iso_0.index, isolated.index]))
+    if slr>0:
+        isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] =  isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] - iso_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]]
     # these lines calculate the country's isolation
     result = pd.DataFrame(isolated.sum()).transpose()
     result['rise'] = slr
