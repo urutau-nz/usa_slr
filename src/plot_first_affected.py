@@ -209,24 +209,29 @@ plt.close()
 # Plot a histogram of the difference between isolation and displacement
 extreme_df = interp_years(extr_slr, year)
 inter_df = interp_years(int_slr, year+[2210])
+high_df = interp_years(high_slr, year)
 
 time_effected = pd.merge(isolate, expose, how='left', on = 'geoid')
 time_effected['isolated_extreme'] = time_effected['first_isolated']
 time_effected['isolated_intermediate'] = time_effected['first_isolated']
 time_effected['exposed_intermediate'] = time_effected['first_exposed']
 time_effected['exposed_extreme'] = time_effected['first_exposed']
+time_effected['exposed_high'] = time_effected['first_exposed']
+time_effected['isolated_high'] = time_effected['first_isolated']
 
 mapper_extreme = extreme_df[['rise','year']].drop_duplicates().set_index('rise')['year'].to_dict()
 mapper_intermediate = inter_df[['rise','year']].drop_duplicates().set_index('rise')['year'].to_dict()
+mapper_high = high_df[['rise','year']].drop_duplicates().set_index('rise')['year'].to_dict()
 
-time_effected = time_effected.replace({'isolated_extreme':mapper_extreme, 'exposed_extreme': mapper_extreme, 'isolated_intermediate':mapper_intermediate, 'exposed_intermediate': mapper_intermediate})
+time_effected = time_effected.replace({'isolated_extreme':mapper_extreme, 'exposed_extreme': mapper_extreme, 'isolated_intermediate':mapper_intermediate, 'exposed_intermediate': mapper_intermediate, 'isolated_high':mapper_high, 'exposed_high': mapper_high})
 
 time_effected['difference_extreme'] = time_effected['exposed_extreme'] - time_effected['isolated_extreme']
 time_effected['difference_intermediate'] = time_effected['exposed_intermediate'] - time_effected['isolated_intermediate']
+time_effected['difference_high'] = time_effected['exposed_high'] - time_effected['isolated_high']
 
 time_effected = pd.merge(time_effected, pop, on='geoid', how='left')
 
-delayed_onset = time_effected[['difference_intermediate','difference_extreme', 'U7B001']]
+delayed_onset = time_effected[['difference_intermediate','difference_extreme', 'difference_high', 'U7B001']]
 
 # plt
 colors = ['#95c2ee','#0B2948']
@@ -259,7 +264,7 @@ time_effected['state_code'] = time_effected['geoid'].str[:2]
 time_effected.replace({'state_code': state_map_abbr}, inplace=True)
 
 
-delayed_onset = time_effected[['difference_intermediate','difference_extreme', 'U7B001','state_code']]
+delayed_onset = time_effected[['difference_intermediate','difference_extreme', 'difference_high', 'U7B001','state_code']]
 delayed_onset = delayed_onset.fillna(170)
 # loop through states
 states = delayed_onset.state_code.unique()
@@ -297,7 +302,35 @@ for state in states:
     plt.close()
     full_plot_data = pd.concat([full_plot_data, plot_data])
 
+
 delayed_onset.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/delayed_onset.csv')
+
+# data for website with extreme and high
+h = plt.hist(delayed_onset[['difference_high']], bin_list, weights=delayed_onset[['U7B001']], color=colors)
+bin_centers = h[1][:-1] + np.diff(h[1])/2
+plot_data = pd.DataFrame({'x':bin_centers, 'y':h[0], 'state':'all', 'scenario':'high'})
+full_plot_data = pd.concat([full_plot_data, plot_data])
+
+h = plt.hist(delayed_onset[['difference_extreme']], bin_list, weights=delayed_onset[['U7B001']], color=colors)
+bin_centers = h[1][:-1] + np.diff(h[1])/2
+plot_data = pd.DataFrame({'x':bin_centers, 'y':h[0], 'state':'all', 'scenario':'extreme'})
+full_plot_data = pd.concat([full_plot_data, plot_data])
+
+for state in states:
+    df_plot = delayed_onset[delayed_onset.state_code==state]
+    h = plt.hist(df_plot[['difference_extreme']], bin_list, weights=df_plot[['U7B001']], color=colors)
+    bin_centers = h[1][:-1] + np.diff(h[1])/2
+    plot_data = pd.DataFrame({'x':bin_centers, 'y':h[0], 'state':state, 'scenario':'extreme'})
+    full_plot_data = pd.concat([full_plot_data, plot_data])
+
+for state in states:
+    df_plot = delayed_onset[delayed_onset.state_code==state]
+    h = plt.hist(df_plot[['difference_high']], bin_list, weights=df_plot[['U7B001']], color=colors)
+    bin_centers = h[1][:-1] + np.diff(h[1])/2
+    plot_data = pd.DataFrame({'x':bin_centers, 'y':h[0], 'state':state, 'scenario':'high'})
+    full_plot_data = pd.concat([full_plot_data, plot_data])
+
+
 full_plot_data.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/delayed_onset_histogram_data.csv')
 
 
