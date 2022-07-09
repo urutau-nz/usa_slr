@@ -68,10 +68,6 @@ result.rename(columns={'U7B001':'inundated'}, inplace=True)
 # plot for each year and scenario
 country = result.groupby(by=['scenario','year'])[['isolated','inundated']].sum()
 
-
-import code
-code.interact(local=locals())
-
 # plot figure
 fig, ax = plt.subplots()
 right_side = ax.spines["right"]
