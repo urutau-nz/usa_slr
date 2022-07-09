@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # config
 with open('./config/main.yaml') as file:
-    config = yaml.load(file)
+    config = yaml.safe_load(file)
 
 db = main.init_db(config)
 

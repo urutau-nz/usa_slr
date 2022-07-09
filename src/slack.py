@@ -22,7 +22,7 @@ def post_message_to_slack(message, greet=True):
         greeting = ""
 
     post('https://slack.com/api/chat.postMessage', {
-        'token': open('./config/slack_token.txt', 'r').read().strip('\n'),
+        'token': open('/media/CivilSystems/admin/slack_token.txt', 'r').read().strip('\n'),
         'channel': '#' + channel_to_post_to,
         'text': greeting + message
     })
