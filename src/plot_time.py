@@ -1,68 +1,76 @@
+import main
 import geopandas as gpd 
 import pandas as pd 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import matplotlib
+import yaml
 from pylab import rcParams
 rcParams['figure.figsize'] = 7, 5
 rcParams['pdf.fonttype'] = 42
 
-# renaming columns so i know whats what
-exp_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/exposure_state.csv')
-iso_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/isolation_state.csv')
+with open('./config/main.yaml') as file:
+    config = yaml.safe_load(file)
 
-year = list(range(2010,2110,10))
-year.extend([2120, 2150, 2200])
-extr_slr = np.array([0.04, 0.11, 0.24, 0.41, 0.63, 0.9, 1.2, 1.6, 2, 2.5, 3.6, 5.5, 9.7]).tolist()
-high_slr = np.array([0.05, 0.11, 0.21, 0.36, 0.54, 0.77, 1, 1.3, 1.7, 2, 2.8, 4.3, 7.5]).tolist()
-int_slr = np.array([0.04, 0.1, 0.16, 0.25, 0.34, 0.45, 0.57, 0.71, 0.85, 1, 1.3, 1.8, 2.8]).tolist()
+db = main.init_db(config)
 
-total_exp = exp_data.groupby('rise').sum()
-total_exp['rise'] = total_exp.index
-total_exp['rise'] = total_exp['rise']/3.281
-list_exp = total_exp['U7B001'].tolist()
-total_iso = iso_data.groupby('rise').sum()
-total_iso['rise'] = total_iso.index
-total_iso['rise'] = total_iso['rise']/3.281
+# import isolation and inundation data
+sql = """ SELECT geoid, rise, "U7B001" FROM isolated_block20 WHERE rise>0;"""
+isolated = pd.read_sql(sql, db['engine'])
+isolated.drop_duplicates(inplace=True)
+sql = """ SELECT geoid, rise, "U7B001" FROM exposed_block20 WHERE rise>0;"""
+inundated = pd.read_sql(sql, db['engine'])
+inundated.drop_duplicates(inplace=True)
 
-def interp_years(scenario_slr, year_list):
-    df = pd.DataFrame(np.nan, index=list(range(len(scenario_slr))), columns=['Unamed: 0', 'U7B001', 'U7C005', 'U7B004', 'U7C002', 'U7G001'])
-    df['rise'] = scenario_slr
-    df['year'] = year_list
-    # exposure dfs
-    exposed = total_exp.append(df)
-    exposed = exposed.drop(columns='Unamed: 0')
-    exposed = exposed.sort_values(by='rise')
-    exposed = exposed.set_index('rise', drop=False)
-    exposed_full = exposed.interpolate(method='index')
-    exposed_full = exposed_full.drop(exposed_full[exposed_full.year%1 < 0.0001].index)
-    # exposed_full = exposed_full.drop(exposed_full[exposed_full.rise > 3.5].index)
-    exposed_full['type'] = ['exposed']*len(list(exposed_full['rise']))
-    # isolation dfs
-    isolated = total_iso.append(df)
-    isolated = isolated.drop(columns='Unamed: 0')
-    isolated = isolated.sort_values(by='rise')
-    isolated = isolated.set_index('rise', drop=False)
-    isolated_full = isolated.interpolate(method='index')
-    isolated_full = isolated_full.drop(isolated_full[isolated_full.year%1 < 0.0001].index)
-    # isolated_full = isolated_full.drop(isolated_full[isolated_full.year > 3.5].index)
-    isolated_full['type'] = ['isolated']*len(list(isolated_full['rise']))
-    # append together
-    df = exposed_full.append(isolated_full)
-    return df
+# import tidal gauges
+rsl = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/data/psmsl_ft.csv')
+rsl.drop(columns='Unnamed: 0', inplace=True)
+# import block and gauges
+sql = """ SELECT psmsl, geoid FROM block_psmsl;"""
+psmsl = pd.read_sql(sql, db['engine'])
+psmsl.drop_duplicates(inplace=True)
+# psmsl.set_index(inplace=True, keys=['psmsl'])
 
-extreme_df = interp_years(extr_slr, year)
-high_df = interp_years(high_slr, year)
-inter_df = interp_years(int_slr, year)
+# scenarios of interest
+scenarios = ['1.0 - LOW', '1.0 - MED', '1.0 - HIGH', '2.0 - LOW', '2.0 - MED', '2.0 - HIGH']
+years = {'RSL2020':2020, 'RSL2030':2030, 'RSL2040':2040, 'RSL2050':2050, 'RSL2060':2060, 'RSL2070':2070, 'RSL2080':2080, 'RSL2090':2090, 'RSL2100':2100, 'RSL2110':2110, 'RSL2120':2120, 'RSL2130':2130, 'RSL2140':2140, 'RSL2150':2150}
+# subset
+rsl = rsl[rsl.scenario.isin(scenarios)]
+# stack: rsl = psmsl | scenario | year | rise
+rsl.set_index(inplace=True, keys=['psmsl','scenario'])
+rsl = rsl.stack()
+rsl.name = 'rise'
+# change rise float to int
+rsl = pd.to_numeric(rsl, downcast='signed')
+# if rsl>10, set to 10ft
+rsl[rsl>10] = 10
+# reset index
+rsl = rsl.to_frame().reset_index()
+# replace year string with int
+rsl.rename(columns={'level_2':'year'}, inplace=True)
+rsl.replace(years, inplace=True)
 
-# seperate for plotting 
-extr_exp = extreme_df[extreme_df['type']=='exposed']
-high_exp = high_df[high_df['type']=='exposed']
-inter_exp = inter_df[inter_df['type']=='exposed']
-extr_iso = extreme_df[extreme_df['type']=='isolated']
-high_iso = high_df[high_df['type']=='isolated']
-inter_iso = inter_df[inter_df['type']=='isolated']
+# join block with rsl
+result = pd.merge(psmsl,rsl, on='psmsl')
+
+# join with isolation results
+result = pd.merge(result, isolated[['geoid', 'rise', 'U7B001']], on=['geoid','rise'])
+# rename
+result.rename(columns={'U7B001':'isolated'}, inplace=True)
+# join with inundation results
+result = pd.merge(result, inundated[['geoid', 'rise', 'U7B001']], on=['geoid','rise'], how='left')
+# rename
+result.rename(columns={'U7B001':'inundated'}, inplace=True)
+
+# group into states
+
+# plot for each year and scenario
+country = result.groupby(by=['scenario','year'])[['isolated','inundated']].sum()
+
+
+import code
+code.interact(local=locals())
 
 # plot figure
 fig, ax = plt.subplots()
@@ -71,15 +79,19 @@ top_side = ax.spines["top"]
 right_side.set_visible(False)
 top_side.set_visible(False)
 # ax2 = ax.twinx()
-ax.plot(extr_iso['year'], extr_iso['U7B001'], color='#0B2948', label='Isolated: Extreme', linestyle='--')
-ax.plot(extr_exp['year'], extr_exp['U7B001'], color='#0B2948', label='Inundated: Extreme')
+# ax.plot(extr_iso['year'], extr_iso['U7B001'], color='#0B2948', label='Isolated: Extreme', linestyle='--')
+# ax.plot(extr_exp['year'], extr_exp['U7B001'], color='#0B2948', label='Inundated: Extreme')
 
 # ax.scatter(extr_exp['year'], extr_exp['U7B001'], color='#1f386b')
-ax.plot(high_iso['year'], high_iso['U7B001'], color='#217AD4', label='Isolated: High', linestyle='--')
-ax.plot(high_exp['year'], high_exp['U7B001'], color='#217AD4', label='Inundated: High')
+ax.plot(country.loc['2.0 - MED']['isolated'], color='#217AD4', label='Isolated: High', linestyle='--')
+ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['isolated'],country.loc['2.0 - HIGH']['isolated'], color='#217AD4', label='Isolated: High', alpha=0.2)
+ax.plot(country.loc['2.0 - MED']['inundated'], color='#217AD4', label='Inundated: High')
+ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['inundated'],country.loc['2.0 - HIGH']['inundated'], color='#217AD4', label='Inundated: High', alpha=0.2)
 # ax.scatter(high_exp['year'], high_exp['U7B001'], color='#627397')
-ax.plot(inter_iso['year'], inter_iso['U7B001'], color='#95C2EE', label='Isolated: Intermediate', linestyle='--')
-ax.plot(inter_exp['year'], inter_exp['U7B001'], color='#95C2EE', label='Inundated: Intermediate')
+ax.plot(country.loc['1.0 - MED']['isolated'], color='#95C2EE', label='Isolated: Intermediate', linestyle='--')
+ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['isolated'],country.loc['1.0 - HIGH']['isolated'], color='#95C2EE', label='Isolated: Intermediate', alpha=0.2)
+ax.plot(country.loc['1.0 - MED']['inundated'], color='#95C2EE', label='Inundated: Intermediate')
+ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['inundated'],country.loc['1.0 - HIGH']['inundated'], color='#95C2EE', label='Inundated: Intermediate', alpha=0.2)
 # ax.scatter(inter_exp['year'], inter_exp['U7B001'], color='#a5afc3')
 
 # ax.scatter(extr_iso['year'], extr_iso['U7B001'], color='#1f386b')
