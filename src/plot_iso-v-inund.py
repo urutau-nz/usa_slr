@@ -9,7 +9,7 @@ rcParams['pdf.fonttype'] = 42
 
 #Read data
 iso = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_country.csv')
-inu = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/exposure_country.csv')
+inu = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_country.csv')
 
 #Plotting
 fig, ax = plt.subplots()
