@@ -2,6 +2,7 @@ import main
 import geopandas as gpd
 import pandas as pd
 import yaml
+import numpy as np
 import us
 state_map_abbr = us.states.mapping('fips', 'abbr')
 state_map_name = us.states.mapping('fips', 'name')
@@ -10,7 +11,7 @@ with open('./config/main.yaml') as file:
 
 db = main.init_db(config)
 
-sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", b."U7G001", t.geoid as geoid_tract
+sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", t.geoid as geoid_tract
                 FROM blocks20 as b
                 LEFT JOIN origins20 as o USING (geoid)
                 LEFT JOIN tract19 as t ON ST_CONTAINS(t.geometry, o.centroid)
@@ -20,7 +21,18 @@ blocks = pd.read_sql(sql, db['engine'])
 blocks.drop_duplicates(inplace=True)
 blocks.set_index('geoid', inplace=True)
 
-
+# sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", t.geoid as geoid_tract
+#                 FROM exposed_origins20 as e
+#                 LEFT JOIN blocks20 as b ON e.id_orig=b.geoid
+#                 LEFT JOIN origins20 as o ON e.id_orig=o.geoid
+#                 LEFT JOIN tract19 as t ON ST_CONTAINS(t.geometry, o.centroid)
+#                 WHERE o."U7B001">0
+#                 AND rise=0;
+#         """
+# exposure_block = pd.read_sql(sql, db['engine'])
+# exposure_block.drop_duplicates(inplace=True)
+# exposure_block.set_index('geoid', inplace=True)
+# exp_ids = exposure_block.index
 
 # loop through slr increments
 isolation_block = []
@@ -30,18 +42,21 @@ for slr in range(11):
         "SELECT geoid FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='fire_station' AND distance IS NOT NULL".format(slr), db['con'])
     dist_school = pd.read_sql(
         "SELECT geoid FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='primary_school' AND distance IS NOT NULL".format(slr), db['con'])
-    dist_health = pd.read_sql(
-        "SELECT geoid FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='emergency_medical_service' AND distance IS NOT NULL".format(slr), db['con'])
-    dist_all = set.intersection(*map(set,[dist_fire.geoid.values, dist_school.geoid.values,dist_health.geoid.values]))
+    # dist_health = pd.read_sql(
+    #     "SELECT geoid FROM nearest_block20 WHERE inundation='slr_low' AND rise={} AND dest_type='emergency_medical_service' AND distance IS NOT NULL".format(slr), db['con'])
+    dist_all = set.intersection(*map(set,[dist_fire.geoid.values, dist_school.geoid.values]))#,dist_health.geoid.values
     with_access = blocks.index.isin(dist_all)
     isolated = blocks[~with_access]
     # subtract the zero SLR case from the data (but only if it is also isolated at 1ft)
-    if slr==0:
-        iso_0 = isolated.copy()
-    if slr==1:
-        ids_0 = set.intersection(*map(set,[iso_0.index, isolated.index]))
-    if slr>0:
-        isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] =  isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]] - iso_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002", "U7G001"]]
+    # if slr==0:
+    #     iso_0 = isolated.copy()
+    # if slr==1:
+    #     ids_0 = set.intersection(*map(set,[iso_0.index, isolated.index]))
+    #     # extra_ids = set(ids_0).difference(set(exp_ids))
+    #     # ids_0 = set.union(set(ids_0),set(exp_ids))
+    #     # remove_values = pd.concat([exposure_block, iso_0.loc[extra_ids]])
+    # if slr>0:
+    #     isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] =  isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] - iso_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]]
     # these lines calculate the country's isolation
     result = pd.DataFrame(isolated.sum()).transpose()
     result['rise'] = slr
