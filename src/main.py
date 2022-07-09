@@ -36,7 +36,7 @@ def main(config_filename=None):
 
     # import config file
     with open('./config/{}.yaml'.format(config_filename)) as file:
-        config = yaml.load(file)
+        config = yaml.safe_load(file)
 
     # initialize and connect to the server
     db = init_db(config)

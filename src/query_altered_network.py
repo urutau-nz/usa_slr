@@ -63,7 +63,7 @@ def main(config):
     # geoid_counties = ['01003']
     # loop through the counties
     i = 0
-    for rise in tqdm([10,0,6,3,9,8,7,5,4,2,1]):
+    for rise in tqdm([0]):#[10,0,6,3,9,8,7,5,4,2,1]):
         logger.error('INITIALISING DOCKER FOR RISE: {}'.format(rise))
         # reset & alter docker
         if rise == 0:
@@ -75,20 +75,17 @@ def main(config):
             make_roads_csv.main(df_osmids, config)
             init_osrm.main(config, logger, True, False)
         for geoid_county in tqdm(geoid_counties):
-            if rise == 0:
-                closed_ids = []
-            else:
-                # get list of closed services ids
-                closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={}".format(
-                    geoid_county, rise), db['engine'])
-                closed_ids = list(closed_ids['id_dest'])
-                exposed_origins = pd.read_sql("SELECT id_orig FROM exposed_origins20 WHERE geoid_county = '{}' AND rise={}".format(
-                    geoid_county, rise), db['engine'])
-                exposed_snaps = pd.read_sql("SELECT id_orig FROM exposed_snaps20 WHERE geoid_county = '{}' AND rise={}".format(
-                    geoid_county, rise), db['engine'])
-                exposed_origins = list(
-                    exposed_origins['id_orig']) + list(exposed_snaps['id_orig'])
-                exposed_origins = np.unique(exposed_origins)
+            # get list of closed services ids
+            closed_ids = pd.read_sql("SELECT id_dest FROM exposed_destinations WHERE geoid = '{}' AND rise={}".format(
+                geoid_county, rise), db['engine'])
+            closed_ids = list(closed_ids['id_dest'])
+            exposed_origins = pd.read_sql("SELECT id_orig FROM exposed_origins20 WHERE geoid_county = '{}' AND rise={}".format(
+                geoid_county, rise), db['engine'])
+            exposed_snaps = pd.read_sql("SELECT id_orig FROM exposed_snaps20 WHERE geoid_county = '{}' AND rise={}".format(
+                geoid_county, rise), db['engine'])
+            exposed_origins = list(
+                exposed_origins['id_orig']) + list(exposed_snaps['id_orig'])
+            exposed_origins = np.unique(exposed_origins)
             # query the distances
             logger.error('QUERYING POINTS FOR {}, {}'.format(
                 geoid_county, rise))
@@ -111,7 +108,7 @@ def connect_db(config):
     '''create the database and then connect to it'''
     # SQL connection
     db = config['SQL'].copy()
-    db['passw'] = open('pass.txt', 'r').read().strip('\n')
+    db['passw'] = open('/media/CivilSystems/admin/pass.txt', 'r').read().strip('\n')
     # connect to database
     db['engine'] = create_engine('postgresql+psycopg2://postgres:' + db['passw'] +
                                  '@' + db['host'] + '/' + db['database_name'] + '?port=' + db['port'])
