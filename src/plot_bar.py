@@ -10,7 +10,7 @@ rcParams['figure.figsize'] = 7, 5
 rcParams['pdf.fonttype'] = 42
 
 # import data
-exp_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/exposure_state.csv')
+exp_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/inundation_state.csv')
 iso_data = pd.read_csv('/media/CivilSystems/projects/access_usa_slr/results/isolation_state.csv')
 
 def plot(exp_data, iso_data, percent):
