@@ -318,13 +318,17 @@ rcParams['figure.figsize'] = 2.8, 2.4
 rcParams.update({'font.size': 20})
 rcParams['axes.titley'] = 1.0    # y is in axes-relative coordinates.
 rcParams['axes.titlepad'] = -14
-time_effected['state_code'] = time_effected['geoid'].str[:2]
+high['difference_high'] = df['year_inundated'] - df['year_isolated']
+intermediate['difference_intermediate'] = df['year_inundated'] - df['year_isolated']
+delayed_onset = pd.merge(high[['geoid','difference_high']], intermediate[['geoid','difference_intermediate']], on='geoid')
+delayed_onset = pd.merge(delayed_onset, pop, how='left', on='geoid')
+delayed_onset['state_code'] = delayed_onset['geoid'].str[:2]
 
-time_effected.replace({'state_code': state_map_abbr}, inplace=True)
+delayed_onset.replace({'state_code': state_map_abbr}, inplace=True)
 
 
-delayed_onset = time_effected[['difference_intermediate','difference_high', 'U7B001','state_code']]
-delayed_onset = delayed_onset.fillna(170)
+delayed_onset = delayed_onset[['difference_intermediate','difference_high', 'U7B001','state_code']]
+# delayed_onset = delayed_onset.fillna(120)
 # loop through states
 states = delayed_onset.state_code.unique()
 colors = ['#95c2ee']
