@@ -5,12 +5,12 @@ set_up:
 
 # Which services do you want to evalaute? (must match 'dest_type' name from destination matix, unless script_mode='setup') TYPE: lst of str's
 services:
-  - supermarket
+  # - supermarket
   # - food_store
   - primary_school
-  - pharmacy
+  # - pharmacy
   - fire_station
-  - emergency_medical_service
+  # - emergency_medical_service
 
 # What mode of transport are you evaluating? ['driving', 'walking', 'cycling'] TYPE: str
 transport_mode: driving
@@ -33,7 +33,7 @@ SQL:
   table_name: distances20 # this is the name for the table of distances
   port: '5002'
   host: encivmu-tml62
-  replace: True
+  replace: False
 
 
 location:
