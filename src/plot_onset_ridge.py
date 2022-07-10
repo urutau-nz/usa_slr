@@ -43,7 +43,6 @@ engine = create_engine('postgresql+psycopg2://postgres:' + passw + '@' + db_host
 # import data
 sql = """ SELECT geoid, min(rise) as first_isolated
                 FROM isolated_block20
-
                 GROUP BY geoid;
         """
 isolate = pd.read_sql(sql, con=engine)
@@ -116,14 +115,7 @@ for country in countries:
 
 gs.update(hspace=0.05)
 
-# fig.text(0.07,0.85,"Distribution of Aptitude Test Results from 18 - 24 year-olds",fontsize=20)
 
-# plt.tick_params(
-#     axis='both',          # changes apply to the x-axis
-#     which='both',      # both major and minor ticks are affected
-#     bottom=False,      # ticks along the bottom edge are off
-#     top=False,         # ticks along the top edge are off
-#     labelbottom=False)
 plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_ridge.jpg')
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_ridge.pdf')
