@@ -48,15 +48,16 @@ for slr in range(11):
     with_access = blocks.index.isin(dist_all)
     isolated = blocks[~with_access]
     # subtract the zero SLR case from the data (but only if it is also isolated at 1ft)
-    # if slr==0:
-    #     iso_0 = isolated.copy()
-    # if slr==1:
-    #     ids_0 = set.intersection(*map(set,[iso_0.index, isolated.index]))
-    #     # extra_ids = set(ids_0).difference(set(exp_ids))
-    #     # ids_0 = set.union(set(ids_0),set(exp_ids))
-    #     # remove_values = pd.concat([exposure_block, iso_0.loc[extra_ids]])
+    if slr==0:
+        iso_0 = isolated.copy()
+        ids_0 = iso_0.index
+    if slr==1:
+        ids_0 = set.intersection(*map(set,[iso_0.index, isolated.index]))
+        # extra_ids = set(ids_0).difference(set(exp_ids))
+        # ids_0 = set.union(set(ids_0),set(exp_ids))
+        # remove_values = pd.concat([exposure_block, iso_0.loc[extra_ids]])
     # if slr>0:
-    #     isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] =  isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] - iso_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]]
+    isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] =  isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] - iso_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]]
     # these lines calculate the country's isolation
     result = pd.DataFrame(isolated.sum()).transpose()
     result['rise'] = slr
@@ -68,6 +69,7 @@ for slr in range(11):
     isolation_block.append(isolated)
 
 isolation_block = pd.concat(isolation_block)
+isolation_block = isolation_block[isolation_block.U7B001 > 0]
 isolation_block.to_sql('isolated_block20', db['engine'], if_exists='replace')
 isolation_block.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_block.csv')
 
