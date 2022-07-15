@@ -40,31 +40,37 @@ db_host = 'encivmu-tml62'
 db_name = 'usa_slr'
 engine = create_engine('postgresql+psycopg2://postgres:' + passw + '@' + db_host + '/' + db_name + '?port=' + port)
 
-# import data
-sql = """ SELECT geoid, min(rise) as first_isolated
-                FROM isolated_block20
-                GROUP BY geoid;
-        """
-isolate = pd.read_sql(sql, con=engine)
-# isolate = isolate[isolate.first_isolated>0]
-
-sql = """ SELECT geoid, min(rise) as first_exposed
-                FROM exposed_block20
-                GROUP BY geoid;
-        """
-expose = pd.read_sql(sql, con=engine)
-
 # import population
 sql = """ SELECT geoid, "U7B001"
                 FROM origins20
         """
 pop = pd.read_sql(sql, con=engine)
 
-time_effected = pd.merge(isolate, expose, on = 'geoid')
-time_effected = time_effected[time_effected['first_exposed']!=0]
-time_effected = time_effected[time_effected['first_isolated']!=0]
-time_effected = time_effected.reset_index()
+# import isolation and inundation data
+sql = """ SELECT geoid, rise FROM isolated_block20 WHERE rise>0;"""
+isolated = pd.read_sql(sql, engine)
+isolated.drop_duplicates(inplace=True)
+sql = """ SELECT geoid, rise FROM exposed_block20 WHERE rise>0;"""
+inundated = pd.read_sql(sql, engine)
+inundated.drop_duplicates(inplace=True)
 
+# how many are not isolated at higher values
+problem_blocks = []
+for i in range(10):
+    problem_blocks.append(set(isolated[isolated.rise==i].geoid)-set(isolated[isolated.rise==10].geoid))
+
+problem_blocks = set().union(*problem_blocks)
+# remove these from isolated
+isolated = isolated[~isolated.geoid.isin(problem_blocks)]
+
+# groupby to find the minimum
+isolate = isolated.groupby(by='geoid').min().rename(columns={'rise':'first_isolated'})
+expose = inundated.groupby(by='geoid').min().rename(columns={'rise':'first_exposed'})
+
+# join
+time_effected = isolate.join(expose)
+time_effected = time_effected.reset_index()
+time_effected.dropna(inplace=True)
 # import code
 # code.interact(local=locals())
 
@@ -87,6 +93,8 @@ fig = plt.figure()
 
 i = 0
 
+import code
+code.interact(local=locals())
 
 ax_objs = []
 for country in countries:
