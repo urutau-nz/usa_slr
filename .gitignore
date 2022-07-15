@@ -14,3 +14,5 @@ slack_token.txt
 fig/
 *.pyc
 notes.md
+tract.*
+src/figs/

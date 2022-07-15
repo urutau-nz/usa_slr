@@ -15,6 +15,12 @@ with open('./config/main.yaml') as file:
 
 db = main.init_db(config)
 
+# import population
+sql = """ SELECT geoid, "U7B001"
+                FROM origins20
+        """
+pop = pd.read_sql(sql, con=db['engine']).set_index('geoid')
+
 # import isolation and inundation data
 sql = """ SELECT geoid, rise, "U7B001" FROM isolated_block20 WHERE rise>0;"""
 isolated = pd.read_sql(sql, db['engine'])
@@ -23,9 +29,16 @@ sql = """ SELECT geoid, rise, "U7B001" FROM exposed_block20 WHERE rise>0;"""
 inundated = pd.read_sql(sql, db['engine'])
 inundated.drop_duplicates(inplace=True)
 
-# import tidal gauges
-rsl = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/data/psmsl_ft.csv')
-rsl.drop(columns='Unnamed: 0', inplace=True)
+# how many are not isolated at higher values
+problem_blocks = []
+for i in range(10):
+    problem_blocks.append(set(isolated[isolated.rise==i].geoid)-set(isolated[isolated.rise==10].geoid))
+
+problem_blocks = set().union(*problem_blocks)
+# remove these from isolated
+isolated = isolated[~isolated.geoid.isin(problem_blocks)]
+
+
 # import block and gauges
 sql = """ SELECT psmsl, geoid FROM block_psmsl;"""
 psmsl = pd.read_sql(sql, db['engine'])
@@ -35,6 +48,10 @@ psmsl.drop_duplicates(inplace=True)
 # scenarios of interest
 scenarios = ['1.0 - LOW', '1.0 - MED', '1.0 - HIGH', '2.0 - LOW', '2.0 - MED', '2.0 - HIGH']
 years = {'RSL2020':2020, 'RSL2030':2030, 'RSL2040':2040, 'RSL2050':2050, 'RSL2060':2060, 'RSL2070':2070, 'RSL2080':2080, 'RSL2090':2090, 'RSL2100':2100, 'RSL2110':2110, 'RSL2120':2120, 'RSL2130':2130, 'RSL2140':2140, 'RSL2150':2150}
+
+# import tidal gauges
+rsl = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/data/psmsl_ft.csv')
+rsl.drop(columns='Unnamed: 0', inplace=True)
 # subset
 rsl = rsl[rsl.scenario.isin(scenarios)]
 # stack: rsl = psmsl | scenario | year | rise
@@ -51,6 +68,7 @@ rsl = rsl.to_frame().reset_index()
 rsl.rename(columns={'level_2':'year'}, inplace=True)
 rsl.replace(years, inplace=True)
 
+
 # join block with rsl
 result = pd.merge(psmsl,rsl, on='psmsl')
 
@@ -65,8 +83,34 @@ result.rename(columns={'U7B001':'inundated'}, inplace=True)
 
 # group into states
 
-# plot for each year and scenario
-country = result.groupby(by=['scenario','year'])[['isolated','inundated']].sum()
+# determine the cumulative increase in isolation and inundation
+dfs = []
+for scen in scenarios:
+    result_scen = result[result.scenario==scen]
+    first_isolated = result_scen.groupby('geoid').min()[['year']]
+    first_inundated = result_scen.dropna(axis=0,subset=['inundated']).groupby('geoid').min()[['year']]
+    first_year = first_isolated.join(first_inundated,how='left',lsuffix='_isolated',rsuffix='_inundated')
+    first_year = first_year.join(pop, how='left')
+    first_year['difference'] = first_year['year_inundated'] - first_year['year_isolated']
+    # create df
+    risk_over_time = pd.DataFrame({
+        'inundated':first_year.groupby('year_inundated')['U7B001'].sum().cumsum(),
+        'isolated':first_year.groupby('year_isolated')['U7B001'].sum().cumsum()
+    })
+    risk_over_time['scenario'] = scen
+    risk_over_time.index.name='year'
+    risk_over_time.reset_index(inplace=True)   
+    if len(risk_over_time)<len(years):
+        for yr in set(years.values())-set(risk_over_time.year):
+            new_row = risk_over_time.iloc[[-1]].copy()
+            new_row['year'] = yr
+            risk_over_time = pd.concat([risk_over_time, new_row])
+    dfs.append(risk_over_time)
+
+country = pd.concat(dfs)
+country.set_index(['scenario','year'],inplace=True)
+
+# country = result.groupby(by=['scenario','year'])[['isolated','inundated']].sum()
 
 # plot figure
 fig, ax = plt.subplots()
@@ -74,31 +118,23 @@ right_side = ax.spines["right"]
 top_side = ax.spines["top"]
 right_side.set_visible(False)
 top_side.set_visible(False)
-# ax2 = ax.twinx()
-# ax.plot(extr_iso['year'], extr_iso['U7B001'], color='#0B2948', label='Isolated: Extreme', linestyle='--')
-# ax.plot(extr_exp['year'], extr_exp['U7B001'], color='#0B2948', label='Inundated: Extreme')
-
-# ax.scatter(extr_exp['year'], extr_exp['U7B001'], color='#1f386b')
-ax.plot(country.loc['2.0 - MED']['isolated'], color='#217AD4', label='Isolated: High', linestyle='--')
-ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['isolated'],country.loc['2.0 - HIGH']['isolated'], color='#217AD4', label='Isolated: High', alpha=0.2)
-ax.plot(country.loc['2.0 - MED']['inundated'], color='#217AD4', label='Inundated: High')
-ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['inundated'],country.loc['2.0 - HIGH']['inundated'], color='#217AD4', label='Inundated: High', alpha=0.2)
-# ax.scatter(high_exp['year'], high_exp['U7B001'], color='#627397')
-ax.plot(country.loc['1.0 - MED']['isolated'], color='#95C2EE', label='Isolated: Intermediate', linestyle='--')
-ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['isolated'],country.loc['1.0 - HIGH']['isolated'], color='#95C2EE', label='Isolated: Intermediate', alpha=0.2)
-ax.plot(country.loc['1.0 - MED']['inundated'], color='#95C2EE', label='Inundated: Intermediate')
-ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['inundated'],country.loc['1.0 - HIGH']['inundated'], color='#95C2EE', label='Inundated: Intermediate', alpha=0.2)
-# ax.scatter(inter_exp['year'], inter_exp['U7B001'], color='#a5afc3')
-
-# ax.scatter(extr_iso['year'], extr_iso['U7B001'], color='#1f386b')
-# ax.scatter(high_iso['year'], high_iso['U7B001'], color='#627397')
-# ax.scatter(inter_iso['year'], inter_iso['U7B001'], color='#a5afc3')
-
+ax.plot(country.loc['2.0 - MED']['isolated'], color='#0B2948', label='Isolated: High', linestyle='--')
+ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['isolated'],country.loc['2.0 - HIGH']['isolated'], color='#0B2948', label='Isolated: High', alpha=0.2)
+ax.plot(country.loc['2.0 - MED']['inundated'], color='#8D162A', label='Inundated: High')
+ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['inundated'],country.loc['2.0 - HIGH']['inundated'], color='#8D162A', label='Inundated: High', alpha=0.2)
+ax.plot(country.loc['1.0 - MED']['isolated'], color='#0B2948', label='Isolated: Intermediate', linestyle='--')
+ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['isolated'],country.loc['1.0 - HIGH']['isolated'], color='#0B2948', label='Isolated: Intermediate', alpha=0.2)
+ax.plot(country.loc['1.0 - MED']['inundated'], color='#8D162A', label='Inundated: Intermediate')
+ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['inundated'],country.loc['1.0 - HIGH']['inundated'], color='#8D162A', label='Inundated: Intermediate', alpha=0.2)
 ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 plt.ylabel('Number of people')
 plt.xlabel('Year')
+plt.xlim(2040,2150)
+plt.ylim(0,16e6)
 plt.legend()
 plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.jpg')
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.pdf')
+plt.close()
+
 

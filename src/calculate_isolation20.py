@@ -9,6 +9,8 @@ state_map_name = us.states.mapping('fips', 'name')
 with open('./config/main.yaml') as file:
     config = yaml.safe_load(file)
 
+remove_zero = True
+
 db = main.init_db(config)
 
 sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", t.geoid as geoid_tract
@@ -48,16 +50,17 @@ for slr in range(11):
     with_access = blocks.index.isin(dist_all)
     isolated = blocks[~with_access]
     # subtract the zero SLR case from the data (but only if it is also isolated at 1ft)
-    if slr==0:
-        iso_0 = isolated.copy()
-        ids_0 = iso_0.index
-    if slr==1:
-        ids_0 = set.intersection(*map(set,[iso_0.index, isolated.index]))
-        # extra_ids = set(ids_0).difference(set(exp_ids))
-        # ids_0 = set.union(set(ids_0),set(exp_ids))
-        # remove_values = pd.concat([exposure_block, iso_0.loc[extra_ids]])
-    # if slr>0:
-    isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] =  isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] - iso_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]]
+    if remove_zero:
+        if slr==0:
+            iso_0 = isolated.copy()
+            ids_0 = iso_0.index
+        if slr==1:
+            ids_0 = set.intersection(*map(set,[iso_0.index, isolated.index]))
+            # extra_ids = set(ids_0).difference(set(exp_ids))
+            # ids_0 = set.union(set(ids_0),set(exp_ids))
+            # remove_values = pd.concat([exposure_block, iso_0.loc[extra_ids]])
+        # if slr>0:
+        isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] =  isolated.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] - iso_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]]
     # these lines calculate the country's isolation
     result = pd.DataFrame(isolated.sum()).transpose()
     result['rise'] = slr

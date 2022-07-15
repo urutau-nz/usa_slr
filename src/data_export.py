@@ -7,18 +7,18 @@ import pandas as pd
 import numpy as np
 import json
 import geopandas as gpd
-import topojson as tp
+# import topojson as tp
 
 config_filename = 'main'
 # import config file
 with open('./config/{}.yaml'.format(config_filename)) as file:
-    config = yaml.load(file)
+    config = yaml.safe_load(file)
 
 # connect to the psql database
 db = main.init_db(config)
 
-# import code
-# code.interact(local=locals())
+import code
+code.interact(local=locals())
 
 ###
 # topojson

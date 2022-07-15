@@ -10,6 +10,8 @@ with open('./config/main.yaml') as file:
 
 db = main.init_db(config)
 
+remove_zero = True
+
 sql = """ SELECT b.geoid, b."U7B001", b."U7C005", b."U7B004", b."U7C002", b."U7G001", t.geoid as geoid_tract
                 FROM blocks20 as b
                 LEFT JOIN origins20 as o USING (geoid)
@@ -48,18 +50,19 @@ exposure_block.set_index('geoid', inplace=True)
 # exposure_block = exposure_block.reset_index()
 # exposure_block.drop_duplicates(inplace=True)
 
-# subtract the zero SLR case from the data (but only if it is also isolated at 1ft)
-exp_0 = exposure_block[exposure_block.rise==0].copy()
-exp_1 = exposure_block[exposure_block.rise==1].copy()
+if remove_zero:
+    # subtract the zero SLR case from the data (but only if it is also isolated at 1ft)
+    exp_0 = exposure_block[exposure_block.rise==0].copy()
+    exp_1 = exposure_block[exposure_block.rise==1].copy()
 
-ids_0 = set.intersection(*map(set,[exp_0.index, exp_1.index]))
-exp_list = []
-for slr in range(0,11):
-    exp = exposure_block[exposure_block.rise==slr].copy()
-    exp.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] = exp.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] - exp_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]]
-    exp_list.append(exp)
+    ids_0 = set.intersection(*map(set,[exp_0.index, exp_1.index]))
+    exp_list = []
+    for slr in range(0,11):
+        exp = exposure_block[exposure_block.rise==slr].copy()
+        exp.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] = exp.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]] - exp_0.loc[ids_0,["U7B001", "U7C005", "U7B004", "U7C002"]]
+        exp_list.append(exp)
 
-exposure_block = pd.concat(exp_list)
+    exposure_block = pd.concat(exp_list)
 
 
 ###

@@ -1,8 +1,20 @@
+import topojson as tp
+import main
 import pandas as pd
 import geopandas as gpd
 import us
 state_map_abbr = us.states.mapping('fips', 'abbr')
 state_map_name = us.states.mapping('fips', 'name')
+import yaml
+with open('./config/main.yaml') as file:
+    config = yaml.safe_load(file)
+from sqlalchemy import create_engine
+
+passw = open('/media/CivilSystems/admin/pass.txt', 'r').read().strip('\n')
+port = '5002'
+db_host = 'encivmu-tml62'
+db_name = 'usa_slr'
+engine = create_engine('postgresql+psycopg2://postgres:' + passw + '@' + db_host + '/' + db_name + '?port=' + port)
 
 
 iso = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_county.csv', dtype={'geoid_county':str})
@@ -26,9 +38,9 @@ df.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/county_differe
 
 gdf = gpd.read_file('/home/tml/CivilSystems/data/usa/2019/nhgis0099_shapefile_tl2019_us_county_2019.zip')
 
-gdf = gdf.merge(df[['geoid_county','difference','dif_percent']], left_on='GEOID',right_on='geoid_county',how='right')
+gdf = gdf.merge(df[['geoid_county','difference','dif_percent','ratio']], left_on='GEOID',right_on='geoid_county',how='right')
 
-gdf.to_file('/home/tml/CivilSystems/projects/access_usa_slr/results/county_dif.shp')
+gdf.to_file('/home/tml/CivilSystems/projects/access_usa_slr/county_dif.shp')
 
 ###
 # for the dashboard
@@ -46,6 +58,7 @@ df.replace({'state_code': state_map_abbr,
 df = df[['geoid_county','rise','ratio', 'isolated','inundated','isolated_percentage','inundated_percentage','state_code','state_name']]
 df.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/dashboard_county.csv')
 
+
 iso = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_tract.csv', dtype={'geoid_tract':str})
 inu = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_tract.csv', dtype={'geoid_tract':str})
 df = iso.merge(inu, on=['geoid_tract','rise'], how='left', suffixes = ('_iso','_inu'))
@@ -58,6 +71,23 @@ df.replace({'state_code': state_map_abbr,
                   'state_name': state_map_name}, inplace=True)
 df = df[['geoid_tract','rise', 'isolated','inundated','isolated_percentage','inundated_percentage','state_code','state_name']]
 df.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/dashboard_tract.csv')
+
+import code
+code.interact(local=locals())
+
+# import data
+sql = """ SELECT t.geoid as id, t.state_fips, t.state_code, t.state_name, t.geometry
+                FROM tract19 as t
+                RIGHT JOIN isolated_tract19
+                ON t.geoid = isolated_tract19.geoid_tract;
+        """
+tracts = gpd.read_postgis(sql, con=engine, geom_col='geometry')
+# tracts.to_file('/home/tml/CivilSystems/projects/access_usa_slr/results/tract.shp')
+# simplify
+tp.Topology(tracts, prequantize=False, toposimplify=3, prevent_oversimplify=True).to_json('/home/tml/CivilSystems/projects/access_usa_slr/results/tract.json')
+# topo = tp.Topology(tracts).topoquantize(0.001)
+
+# topo.to_json('/home/tml/CivilSystems/projects/access_usa_slr/results/tract.json')
 
 iso = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/isolation_state.csv', dtype={'state_code':str})
 inu = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/inundation_state.csv', dtype={'state_code':str})

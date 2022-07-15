@@ -94,20 +94,22 @@ result['state'] = result['geoid'].str[:2]
 result.replace({'state': state_map_abbr}, inplace=True)
 state = result.groupby(by=['scenario','state','year'])[['isolated','inundated']].sum()
 state['ratio'] = state['isolated']/state['inundated']
+state['logratio'] = np.log(state['isolated']/state['inundated'])
 
 high = state.loc['2.0 - MED']
 high.reset_index(inplace=True)
 high.set_index('year',inplace=True)
-high.groupby('state')['ratio'].plot(alpha=0.5,color='#1f386b',xlim=(2030,2150),ylim=(0,5))
-plt.axhline(y=1, color='k', linestyle='--', alpha=0.2)
+high.groupby('state')['ratio'].plot(alpha=0.5,color='#1f386b',xlim=(2040,2150),ylim=(1,4))
+# plt.axhline(y=1, color='k', linestyle='--', alpha=0.2)
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/ratio_time_high.jpg')
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/ratio_time_high.pdf')
 plt.close()
 
+
 inter = state.loc['1.0 - MED']
 inter.reset_index(inplace=True)
 inter.set_index('year',inplace=True)
-inter.groupby('state')['ratio'].plot(alpha=0.5,color='#1f386b',xlim=(2030,2150),ylim=(0,5))
+inter.groupby('state')['ratio'].plot(alpha=0.5,color='#1f386b',xlim=(2040,2150),ylim=(0,5))
 plt.axhline(y=1, color='k', linestyle='--', alpha=0.2)
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/ratio_time_intermediate.jpg')
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/ratio_time_intermediate.pdf')
