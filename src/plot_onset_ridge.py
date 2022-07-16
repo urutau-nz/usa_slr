@@ -93,9 +93,6 @@ fig = plt.figure()
 
 i = 0
 
-import code
-code.interact(local=locals())
-
 ax_objs = []
 for country in countries:
     country = countries[i]

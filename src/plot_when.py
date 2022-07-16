@@ -1,3 +1,4 @@
+from matplotlib.lines import _LineStyle
 import main
 import geopandas as gpd 
 import pandas as pd 
@@ -111,10 +112,8 @@ ax = dif_onset.plot.bar(color={'High':'#0B2948','Intermediate':'#95c2ee'})
 ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 plt.xlabel("Time lag between onset of inundation and isolation (Years)")
 plt.ylabel("Number of People")
-# plt.legend(labels = {'high':"High", 'intermediate':"Intermediate"})
-# labels = [item.get_text() for item in ax.get_xticklabels()]
-# labels[-1] = 'NI'
-# ax.set_xticklabels(labels)
+ax.spines.right.set_visible(False)
+ax.spines.top.set_visible(False)
 plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_histogram.jpg')
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_histogram.pdf')
@@ -123,6 +122,11 @@ plt.close()
 ###
 # Repeat for the States
 ###
+rcParams['figure.figsize'] = 2.8, 2.4
+rcParams.update({'font.size': 20})
+rcParams['axes.titley'] = 1.0    # y is in axes-relative coordinates.
+rcParams['axes.titlepad'] = -14
+
 dif_high_all = high_year.groupby('difference', dropna=False)[['U7B001']].sum()
 dif_high_all['state_code'] = 'all'
 dif_high_all['scenario'] = 'high'
@@ -151,19 +155,25 @@ intermediate_year_state['scenario'] = 'intermediate'
 full_plot_data = pd.concat([dif_high_all, dif_inter_all, high_year_state, intermediate_year_state])
 full_plot_data.rename(columns={'difference':'x','U7B001':'y','state_code':'state'}, inplace=True)
 full_plot_data.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/delayed_onset_histogram_data.csv')
+full_plot_data = full_plot_data.fillna(140)
+full_plot_data.x = full_plot_data.x.astype(int)
 
 # plots for states
 for state in full_plot_data.state.unique():
-    df_plot = full_plot_data[(full_plot_data.state==state)&(full_plot_data.scenario=='intermediate')]
-    fig, ax = plt.subplots()
-    right_side = ax.spines["right"]
-    top_side = ax.spines["top"]
-    right_side.set_visible(False)
-    top_side.set_visible(False)
-    h = df_plot.plot.bar(x='x',y='y', color='#95c2ee')
+    data = full_plot_data[(full_plot_data.state==state)&(full_plot_data.scenario=='intermediate')]
+    x_missing = set(full_plot_data.x)-set(data.x)
+    empty = pd.DataFrame([[x, 0, state, 'intermediate'] for x in x_missing],columns=['x','y','state','scenario'])
+    data = pd.concat([data,empty])
+    data = data.sort_values(by='x')
+    ax = data.plot.bar(x='x',y='y', color='#95c2ee', legend=False, width=1)
+    # ax.stem(df_plot.x, df_plot.y, linefmt='#95c2ee', markerfmt=' ', basefmt=" ")
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda y, pos: '%.0f' % (y * 1e-3)))
+    ax.spines.right.set_visible(False)
+    ax.spines.top.set_visible(False)
     plt.title(state)
+    plt.ylabel('')
     plt.yticks(rotation = 90)
+    ax.set_xticklabels(labels=[0] + [None]*9 + [100] + [None]*4,rotation=0)
     plt.tight_layout()
     plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/delayed_onset_histogram_{}.pdf'.format(state))
     plt.close()
@@ -171,6 +181,9 @@ for state in full_plot_data.state.unique():
 ###
 # For the people never inundated, when are they first isolated
 ###
+rcParams['figure.figsize'] = 7, 5
+rcParams['pdf.fonttype'] = 42
+
 when_isolated = pd.DataFrame(
     {'Intermediate':intermediate_year.loc[intermediate_year.year_inundated.isna(), ['year_isolated','U7B001']].groupby('year_isolated').sum()['U7B001'],
     'High':high_year.loc[high_year.year_inundated.isna(), ['year_isolated','U7B001']].groupby('year_isolated').sum()['U7B001']
@@ -184,6 +197,9 @@ plt.ylabel("Number of People")
 # labels = [item.get_text() for item in ax.get_xticklabels()]
 # labels[-1] = 'NI'
 # ax.set_xticklabels(labels)
+ax.spines.right.set_visible(False)
+ax.spines.top.set_visible(False)
+plt.xticks(rotation = 0)
 plt.tight_layout()
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/never_inundated.jpg')
 plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/never_inundated.pdf')
@@ -199,6 +215,8 @@ plt.close()
 intermediate_year['scenario']='intermediate'
 high_year['scenario']='high'
 df = pd.concat([intermediate_year, high_year])
+df = df[df['year_inundated']>2020]
+df = df[df['year_isolated']>2020]
 df.dropna(inplace=True)
 df_exposed = df['year_inundated'].repeat(df['U7B001'])
 df_isolated = df['year_isolated'].repeat(df['U7B001'])
