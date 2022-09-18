@@ -1,4 +1,4 @@
-from matplotlib.lines import _LineStyle
+# from matplotlib.lines import _LineStyle
 import main
 import geopandas as gpd 
 import pandas as pd 
@@ -50,8 +50,9 @@ psmsl.set_index('psmsl',inplace=True)
 # psmsl.set_index(inplace=True, keys=['psmsl'])
 
 # scenarios of interest
-scenarios = ['1.0 - LOW', '1.0 - MED', '1.0 - HIGH', '2.0 - LOW', '2.0 - MED', '2.0 - HIGH']
+scenarios = ['0.5 - LOW', '0.5 - MED', '0.5 - HIGH', '1.0 - LOW', '1.0 - MED', '1.0 - HIGH', '2.0 - LOW', '2.0 - MED', '2.0 - HIGH']
 years = {'RSL2020':2020, 'RSL2030':2030, 'RSL2040':2040, 'RSL2050':2050, 'RSL2060':2060, 'RSL2070':2070, 'RSL2080':2080, 'RSL2090':2090, 'RSL2100':2100, 'RSL2110':2110, 'RSL2120':2120, 'RSL2130':2130, 'RSL2140':2140, 'RSL2150':2150}
+color_palette = {'High':'#0B2948','Intermediate':'#627397', 'Intermediate-Low':'#A5AFC3'}
 
 # import tidal gauges
 rsl = pd.read_csv('/home/tml/CivilSystems/projects/access_usa_slr/data/psmsl_ft.csv')
@@ -105,10 +106,18 @@ intermediate_year = intermediate_year.join(pop, how='left')
 intermediate_year['difference'] = intermediate_year['year_inundated'] - intermediate_year['year_isolated']
 dif_inter = intermediate_year.groupby('difference', dropna=False)['U7B001'].sum()
 
-dif_onset = pd.DataFrame({'Intermediate':dif_inter, 'High':dif_high})
+intermediatelow = result[result.scenario=='0.5 - MED']
+first_isolated = intermediatelow.dropna(axis=0,subset=['isolated']).groupby('geoid').min()[['year']]
+first_inundated = intermediatelow.dropna(axis=0,subset=['inundated']).groupby('geoid').min()[['year']]
+intermediatelow_year = first_isolated.join(first_inundated,how='left',lsuffix='_isolated',rsuffix='_inundated')
+intermediatelow_year = intermediatelow_year.join(pop, how='left')
+intermediatelow_year['difference'] = intermediatelow_year['year_inundated'] - intermediatelow_year['year_isolated']
+dif_intermediatelow = intermediatelow_year.groupby('difference', dropna=False)['U7B001'].sum()
+
+dif_onset = pd.DataFrame({'Intermediate-Low':dif_intermediatelow, 'Intermediate':dif_inter, 'High':dif_high})
 
 # plt
-ax = dif_onset.plot.bar(color={'High':'#0B2948','Intermediate':'#95c2ee'})
+ax = dif_onset.plot.bar(color=color_palette)
 ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 plt.xlabel("Time lag between onset of inundation and isolation (Years)")
 plt.ylabel("Number of People")
@@ -129,30 +138,42 @@ rcParams['axes.titlepad'] = -14
 
 dif_high_all = high_year.groupby('difference', dropna=False)[['U7B001']].sum()
 dif_high_all['state_code'] = 'all'
-dif_high_all['scenario'] = 'high'
+dif_high_all['scenario'] = 'High'
 dif_high_all.reset_index(inplace=True)
 
 dif_inter_all = intermediate_year.groupby('difference', dropna=False)[['U7B001']].sum()
 dif_inter_all['state_code'] = 'all'
-dif_inter_all['scenario'] = 'intermediate'
+dif_inter_all['scenario'] = 'Intermediate'
 dif_inter_all.reset_index(inplace=True)
+
+dif_interlow_all = intermediatelow_year.groupby('difference', dropna=False)[['U7B001']].sum()
+dif_interlow_all['state_code'] = 'all'
+dif_interlow_all['scenario'] = 'Intermediate-Low'
+dif_interlow_all.reset_index(inplace=True)
 
 high_year_state = high_year.reset_index()
 high_year_state['state_code'] = high_year_state['geoid'].str[:2]
 high_year_state = high_year_state.groupby(['state_code','difference'], dropna=False)[['U7B001']].sum()
 high_year_state.reset_index(inplace=True)
 high_year_state.replace({'state_code': state_map_abbr}, inplace=True)
-high_year_state['scenario'] = 'high'
+high_year_state['scenario'] = 'High'
 
 intermediate_year_state = intermediate_year.reset_index()
 intermediate_year_state['state_code'] = intermediate_year_state['geoid'].str[:2]
 intermediate_year_state = intermediate_year_state.groupby(['state_code','difference'], dropna=False)[['U7B001']].sum()
 intermediate_year_state.reset_index(inplace=True)
 intermediate_year_state.replace({'state_code': state_map_abbr}, inplace=True)
-intermediate_year_state['scenario'] = 'intermediate'
+intermediate_year_state['scenario'] = 'Intermediate'
+
+intermediatelow_year_state = intermediatelow_year.reset_index()
+intermediatelow_year_state['state_code'] = intermediatelow_year_state['geoid'].str[:2]
+intermediatelow_year_state = intermediatelow_year_state.groupby(['state_code','difference'], dropna=False)[['U7B001']].sum()
+intermediatelow_year_state.reset_index(inplace=True)
+intermediatelow_year_state.replace({'state_code': state_map_abbr}, inplace=True)
+intermediatelow_year_state['scenario'] = 'Intermediate-Low'
 
 # for the dashboard
-full_plot_data = pd.concat([dif_high_all, dif_inter_all, high_year_state, intermediate_year_state])
+full_plot_data = pd.concat([dif_high_all, dif_inter_all, dif_interlow_all, high_year_state, intermediate_year_state, intermediatelow_year_state])
 full_plot_data.rename(columns={'difference':'x','U7B001':'y','state_code':'state'}, inplace=True)
 full_plot_data.to_csv('/home/tml/CivilSystems/projects/access_usa_slr/results/delayed_onset_histogram_data.csv')
 full_plot_data = full_plot_data.fillna(140)
@@ -160,12 +181,12 @@ full_plot_data.x = full_plot_data.x.astype(int)
 
 # plots for states
 for state in full_plot_data.state.unique():
-    data = full_plot_data[(full_plot_data.state==state)&(full_plot_data.scenario=='intermediate')]
+    data = full_plot_data[(full_plot_data.state==state)&(full_plot_data.scenario=='Intermediate')]
     x_missing = set(full_plot_data.x)-set(data.x)
-    empty = pd.DataFrame([[x, 0, state, 'intermediate'] for x in x_missing],columns=['x','y','state','scenario'])
+    empty = pd.DataFrame([[x, 0, state, 'Intermediate'] for x in x_missing],columns=['x','y','state','scenario'])
     data = pd.concat([data,empty])
     data = data.sort_values(by='x')
-    ax = data.plot.bar(x='x',y='y', color='#95c2ee', legend=False, width=1)
+    ax = data.plot.bar(x='x',y='y', color='#627397', legend=False, width=1)
     # ax.stem(df_plot.x, df_plot.y, linefmt='#95c2ee', markerfmt=' ', basefmt=" ")
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda y, pos: '%.0f' % (y * 1e-3)))
     ax.spines.right.set_visible(False)
@@ -185,11 +206,12 @@ rcParams['figure.figsize'] = 7, 5
 rcParams['pdf.fonttype'] = 42
 
 when_isolated = pd.DataFrame(
-    {'Intermediate':intermediate_year.loc[intermediate_year.year_inundated.isna(), ['year_isolated','U7B001']].groupby('year_isolated').sum()['U7B001'],
+    {'Intermediate-Low':intermediatelow_year.loc[intermediatelow_year.year_inundated.isna(), ['year_isolated','U7B001']].groupby('year_isolated').sum()['U7B001'],
+    'Intermediate':intermediate_year.loc[intermediate_year.year_inundated.isna(), ['year_isolated','U7B001']].groupby('year_isolated').sum()['U7B001'],
     'High':high_year.loc[high_year.year_inundated.isna(), ['year_isolated','U7B001']].groupby('year_isolated').sum()['U7B001']
     })
 
-ax = when_isolated.plot.bar(color={'High':'#0B2948','Intermediate':'#95c2ee'})
+ax = when_isolated.plot.bar(color=color_palette)
 ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 plt.xlabel("When are blocks that are never inundated first isolated (Year)")
 plt.ylabel("Number of People")
@@ -212,9 +234,10 @@ plt.close()
 # Box Plot: year of isolated vs inundated 
 #######
 # add population and duplicate rows per person
-intermediate_year['scenario']='intermediate'
-high_year['scenario']='high'
-df = pd.concat([intermediate_year, high_year])
+intermediatelow_year['scenario']='Intermediate-Low'
+intermediate_year['scenario']='Intermediate'
+high_year['scenario']='High'
+df = pd.concat([intermediatelow_year, intermediate_year, high_year])
 df = df[df['year_inundated']>2020]
 df = df[df['year_isolated']>2020]
 df.dropna(inplace=True)
@@ -230,7 +253,7 @@ y_labels = df_popweighted.year_inundated.unique()#[2020, None, None, None, None,
 # box plots on one graph
 fig, ax = plt.subplots()
 flierprops = dict(marker='.', markerfacecolor='grey', markersize=1)
-ax = sns.boxplot(y="year_inundated", x="year_isolated", data=df_popweighted, hue="scenario", notch=False, flierprops=flierprops, orient='h', whis=[5, 95], showfliers = False, palette={'extreme':'#0B2948', 'high':'#0B2948', 'intermediate':'#95c2ee'})
+ax = sns.boxplot(y="year_inundated", x="year_isolated", data=df_popweighted, hue="scenario", notch=False, flierprops=flierprops, orient='h', whis=[5, 95], showfliers = False, palette=color_palette, hue_order = ['Intermediate-Low', 'Intermediate', 'High'])
 y = list(range(len(y_labels)))
 x = y_labels#list(range(len(y_labels)))
 plt.plot(x,y,'k--',alpha=0.5)

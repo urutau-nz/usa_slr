@@ -15,6 +15,7 @@ with open('./config/main.yaml') as file:
 
 db = main.init_db(config)
 
+
 # import population
 sql = """ SELECT geoid, "U7B001"
                 FROM origins20
@@ -46,7 +47,7 @@ psmsl.drop_duplicates(inplace=True)
 # psmsl.set_index(inplace=True, keys=['psmsl'])
 
 # scenarios of interest
-scenarios = ['1.0 - LOW', '1.0 - MED', '1.0 - HIGH', '2.0 - LOW', '2.0 - MED', '2.0 - HIGH']
+scenarios = ['0.5 - LOW', '0.5 - MED', '0.5 - HIGH', '1.0 - LOW', '1.0 - MED', '1.0 - HIGH', '2.0 - LOW', '2.0 - MED', '2.0 - HIGH']
 years = {'RSL2020':2020, 'RSL2030':2030, 'RSL2040':2040, 'RSL2050':2050, 'RSL2060':2060, 'RSL2070':2070, 'RSL2080':2080, 'RSL2090':2090, 'RSL2100':2100, 'RSL2110':2110, 'RSL2120':2120, 'RSL2130':2130, 'RSL2140':2140, 'RSL2150':2150}
 
 # import tidal gauges
@@ -112,29 +113,37 @@ country.set_index(['scenario','year'],inplace=True)
 
 # country = result.groupby(by=['scenario','year'])[['isolated','inundated']].sum()
 
-# plot figure
-fig, ax = plt.subplots()
-right_side = ax.spines["right"]
-top_side = ax.spines["top"]
-right_side.set_visible(False)
-top_side.set_visible(False)
-ax.plot(country.loc['2.0 - MED']['isolated'], color='#0B2948', label='Isolated: High', linestyle='--')
-ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['isolated'],country.loc['2.0 - HIGH']['isolated'], color='#0B2948', label='Isolated: High', alpha=0.2)
-ax.plot(country.loc['2.0 - MED']['inundated'], color='#8D162A', label='Inundated: High')
-ax.fill_between(country.loc['2.0 - MED'].index,country.loc['2.0 - LOW']['inundated'],country.loc['2.0 - HIGH']['inundated'], color='#8D162A', label='Inundated: High', alpha=0.2)
-ax.plot(country.loc['1.0 - MED']['isolated'], color='#0B2948', label='Isolated: Intermediate', linestyle='--')
-ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['isolated'],country.loc['1.0 - HIGH']['isolated'], color='#0B2948', label='Isolated: Intermediate', alpha=0.2)
-ax.plot(country.loc['1.0 - MED']['inundated'], color='#8D162A', label='Inundated: Intermediate')
-ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['inundated'],country.loc['1.0 - HIGH']['inundated'], color='#8D162A', label='Inundated: Intermediate', alpha=0.2)
-ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
-plt.ylabel('Number of people')
-plt.xlabel('Year')
-plt.xlim(2040,2150)
-plt.ylim(0,16e6)
-plt.legend()
-plt.tight_layout()
-plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.jpg')
-plt.savefig('/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr.pdf')
-plt.close()
+
+projection_dict = {'Intermediate-Low':'0.5', 'Intermediate':'1.0', 'High':'2.0'}
+
+# import code
+# code.interact(local=locals())
+
+for proj in projection_dict:
+    rise = projection_dict[proj]
+    # plot figure
+    fig, ax = plt.subplots()
+    right_side = ax.spines["right"]
+    top_side = ax.spines["top"]
+    right_side.set_visible(False)
+    top_side.set_visible(False)
+    ax.plot(country.loc[f'{rise} - MED']['isolated'], color='#0B2948', label=f'Isolated: {proj}', linestyle='-')
+    ax.fill_between(country.loc[f'{rise} - MED'].index,country.loc[f'{rise} - LOW']['isolated'],country.loc[f'{rise} - HIGH']['isolated'], color='#0B2948', label=f'Isolated: {proj}', alpha=0.2)
+    ax.plot(country.loc[f'{rise} - MED']['inundated'], color='#8D162A', label=f'Inundated: {proj}')
+    ax.fill_between(country.loc[f'{rise} - MED'].index,country.loc[f'{rise} - LOW']['inundated'],country.loc[f'{rise} - HIGH']['inundated'], color='#8D162A', label=f'Inundated: {proj}', alpha=0.2)
+    # ax.plot(country.loc['1.0 - MED']['isolated'], color='#0B2948', label='Isolated: Intermediate', linestyle='--')
+    # ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['isolated'],country.loc['1.0 - HIGH']['isolated'], color='#0B2948', label='Isolated: Intermediate', alpha=0.2)
+    # ax.plot(country.loc['1.0 - MED']['inundated'], color='#8D162A', label='Inundated: Intermediate')
+    # ax.fill_between(country.loc['1.0 - MED'].index,country.loc['1.0 - LOW']['inundated'],country.loc['1.0 - HIGH']['inundated'], color='#8D162A', label='Inundated: Intermediate', alpha=0.2)
+    ax.get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+    plt.ylabel('Number of people')
+    plt.xlabel('Year')
+    plt.xlim(2040,2150)
+    plt.ylim(0,16e6)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr_{rise}.jpg')
+    plt.savefig(f'/home/tml/CivilSystems/projects/access_usa_slr/fig/time_slr_{rise}.pdf')
+    plt.close()
 
 
